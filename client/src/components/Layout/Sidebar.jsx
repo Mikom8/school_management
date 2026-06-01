@@ -139,7 +139,7 @@ const Sidebar = ({ isMobileOpen, onMobileClose, onSidebarToggle }) => {
     if (isCollapsed) {
       return `${baseClasses} justify-center p-3 mx-2 ${
         isActive
-          ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25"
+          ? "bg-linear-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25"
           : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:scale-105"
       } ${
         hoveredItem === itemName
@@ -150,7 +150,7 @@ const Sidebar = ({ isMobileOpen, onMobileClose, onSidebarToggle }) => {
 
     return `${baseClasses} px-4 py-3 ${
       isActive
-        ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25"
+        ? "bg-linear-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25"
         : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:translate-x-2"
     } ${
       hoveredItem === itemName ? "ring-2 ring-blue-200 dark:ring-blue-800" : ""
@@ -171,7 +171,7 @@ const Sidebar = ({ isMobileOpen, onMobileClose, onSidebarToggle }) => {
 
       {/* Sidebar Container */}
       <div
-        className={`fixed inset-y-0 left-0 z-40 bg-gradient-to-b from-white to-gray-50/80 dark:from-gray-900 dark:to-gray-800/80 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-700/50 transform transition-all duration-500 ease-out overflow-y-auto ${sidebarWidth}
+        className={`fixed inset-y-0 left-0 z-40 bg-linear-to-b from-white to-gray-50/80 dark:from-gray-900 dark:to-gray-800/80 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-700/50 transform transition-all duration-500 ease-out overflow-y-auto ${sidebarWidth}
           ${
             isMobileOpen
               ? "translate-x-0"
@@ -234,7 +234,7 @@ const Sidebar = ({ isMobileOpen, onMobileClose, onSidebarToggle }) => {
               >
                 <Icon
                   size={20}
-                  className={`mr-3 flex-shrink-0 transition-transform group-hover:scale-110 ${
+                  className={`mr-3 shrink-0 transition-transform group-hover:scale-110 ${
                     isCollapsed ? "ml-2" : ""
                   }`}
                 />
@@ -363,7 +363,7 @@ const Sidebar = ({ isMobileOpen, onMobileClose, onSidebarToggle }) => {
             <div className="w-full">
               <div className="flex items-center justify-between space-x-3 p-3 bg-gray-100 dark:bg-gray-800 rounded-xl transition-shadow shadow-sm hover:shadow-md">
                 <div className="flex items-center min-w-0 flex-1">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0 text-white">
+                  <div className="w-10 h-10 bg-linear-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shrink-0 text-white">
                     {user?.name?.charAt(0) || "U"}
                   </div>
                   <div className="min-w-0 flex-1 ml-3">
@@ -378,7 +378,7 @@ const Sidebar = ({ isMobileOpen, onMobileClose, onSidebarToggle }) => {
 
                 <button
                   onClick={logout}
-                  className="p-2 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-full transition-colors flex-shrink-0 cursor-pointer"
+                  className="p-2 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-full transition-colors shrink-0 cursor-pointer"
                   title="Logout"
                 >
                   <LogOut size={20} />

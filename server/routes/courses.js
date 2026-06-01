@@ -3,6 +3,7 @@ const Course = require("../models/Course");
 const Student = require("../models/Student");
 const User = require("../models/User");
 const Activity = require("../models/Activity");
+const Department = require("../models/Department");
 const { auth, authorize } = require("../middleware/auth");
 
 const router = express.Router();
@@ -140,6 +141,7 @@ router.get("/", auth, async (req, res) => {
 
     const courses = await Course.find(query)
       .populate("teacher", "name email")
+      .populate("department", "name code")
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
@@ -173,7 +175,7 @@ router.get("/teacher-courses", auth, authorize("teacher"), async (req, res) => {
     const courses = await Course.find({ teacher: req.user._id }).populate(
       "teacher",
       "name email"
-    );
+    ).populate("department","name code");
 
     res.json({
       success: true,
@@ -224,10 +226,20 @@ router.get("/my-courses", auth, authorize("student"), async (req, res) => {
     const courses = await Course.find(query)
       .populate("teacher", "name email")
       .select("name code description credits schedule teacher enrolledStudents maxStudents isActive");
+      
+    // Map to include department info in selection if present
+    const mapped = await Promise.all(courses.map(async (c) => {
+      const course = c.toObject();
+      if (course.department) {
+        const dep = await Department.findById(course.department).select("name code");
+        course.department = dep || course.department;
+      }
+      return course;
+    }));
 
     res.json({
       success: true,
-      data: courses,
+      data: mapped || courses,
     });
   } catch (error) {
     console.error("Get student courses error:", error);
@@ -279,6 +291,34 @@ router.post("/teacher-create", auth, authorize("teacher"), async (req, res) => {
 
 // ─── Wildcard /:id routes LAST ───────────────────────────────────────────────
 
+// Departments
+// Get departments
+router.get("/departments", auth, async (req, res) => {
+  try {
+    const deps = await Department.find().sort({ name: 1 });
+    res.json({ success: true, data: deps });
+  } catch (error) {
+    console.error("Get departments error:", error);
+    console.error(error.stack);
+    res.status(500).json({ success: false, message: "Failed to retrieve departments" });
+  }
+});
+
+// Create department (admin only)
+router.post("/departments", auth, authorize("admin"), async (req, res) => {
+  try {
+    const { name, code, description } = req.body;
+    if (!name) return res.status(400).json({ success: false, message: "Name is required" });
+    const existing = await Department.findOne({ name });
+    if (existing) return res.status(400).json({ success: false, message: "Department already exists" });
+    const dept = await Department.create({ name, code, description });
+    res.status(201).json({ success: true, data: dept });
+  } catch (error) {
+    console.error("Create department error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // Get course by ID
 router.get("/:id", auth, async (req, res) => {
   try {
@@ -301,6 +341,7 @@ router.post("/", auth, async (req, res) => {
     const course = new Course(req.body);
     await course.save();
     await course.populate("teacher", "name email");
+    await course.populate("department", "name code");
     
     // Log activity
     try {
@@ -350,6 +391,7 @@ router.put("/:id", auth, async (req, res) => {
       new: true,
       runValidators: true,
     }).populate("teacher", "name email");
+    await course.populate("department", "name code");
 
     // Log activity for course update
     try {
@@ -418,6 +460,5 @@ router.delete("/:id", auth, async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
-
 module.exports = router;
 

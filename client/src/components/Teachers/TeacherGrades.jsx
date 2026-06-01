@@ -168,9 +168,9 @@ const TeacherGrades = () => {
           } border px-4 py-3 rounded-lg shadow-lg flex items-start space-x-3`}
         >
           {notification.type === "error" ? (
-            <AlertCircle className="flex-shrink-0 mt-0.5" size={20} />
+            <AlertCircle className="shrink-0 mt-0.5" size={20} />
           ) : (
-            <CheckCircle className="flex-shrink-0 mt-0.5" size={20} />
+            <CheckCircle className="shrink-0 mt-0.5" size={20} />
           )}
           <div className="flex-1">
             <p className="text-sm font-medium">{notification.message}</p>

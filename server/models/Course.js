@@ -28,6 +28,19 @@ const courseSchema = new mongoose.Schema(
       ref: "User",
       required: false, // Changed from false to true
     },
+    department: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Department",
+      required: false,
+    },
+    year: {
+      type: String,
+      required: false,
+    },
+    semester: {
+      type: String,
+      required: false,
+    },
     schedule: {
       days: [
         {
@@ -45,10 +58,6 @@ const courseSchema = new mongoose.Schema(
       startTime: String,
       endTime: String,
       room: String,
-    },
-    maxStudents: {
-      type: Number,
-      default: 30,
     },
     enrolledStudents: [
       {

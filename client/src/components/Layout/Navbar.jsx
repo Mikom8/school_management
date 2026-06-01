@@ -66,7 +66,7 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                 className="flex items-center space-x-2 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               >
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                <div className="w-8 h-8 bg-linear-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
                   {user?.name?.charAt(0) || "U"}
                 </div>
                 <div className="hidden sm:block text-left">

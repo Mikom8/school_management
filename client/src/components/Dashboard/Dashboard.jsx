@@ -638,25 +638,25 @@ const Dashboard = () => {
           icon={Users}
           title="Total Students"
           value={stats.students || 0}
-          color="bg-gradient-to-br from-blue-400 to-blue-600"
+          color="bg-linear-to-br from-blue-400 to-blue-600"
         />
         <AdminStatCard
           icon={UserCog}
           title="Faculty Members"
           value={stats.teachers || 0}
-          color="bg-gradient-to-br from-green-400 to-green-600"
+          color="bg-linear-to-br from-green-400 to-green-600"
         />
         <AdminStatCard
           icon={BookOpen}
           title="Courses"
           value={stats.courses || 0}
-          color="bg-gradient-to-br from-purple-400 to-purple-600"
+          color="bg-linear-to-br from-purple-400 to-purple-600"
         />
         <AdminStatCard
           icon={TrendingUp}
           title="Attendance Rate"
           value={`${stats.attendance || 0}%`}
-          color="bg-gradient-to-br from-orange-400 to-orange-600"
+          color="bg-linear-to-br from-orange-400 to-orange-600"
         />
       </div>
 

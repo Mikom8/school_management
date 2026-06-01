@@ -23,6 +23,7 @@ const CourseManagement = () => {
   const [courses, setCourses] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [students, setStudents] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -47,7 +48,9 @@ const CourseManagement = () => {
       endTime: "",
       room: "",
     },
-    maxStudents: 30,
+    department: null,
+    year: "",
+    semester: "",
   });
 
   // Custom notification popup
@@ -66,6 +69,15 @@ const CourseManagement = () => {
     onConfirm: () => {},
     onCancel: () => {},
   });
+
+  // Department modal state
+  const [showDeptModal, setShowDeptModal] = useState(false);
+  const [deptForm, setDeptForm] = useState({
+    name: "",
+    code: "",
+    description: "",
+  });
+  const [deptSubmitting, setDeptSubmitting] = useState(false);
 
   // Show confirmation dialog
   const showConfirmDialog = (
@@ -155,12 +167,38 @@ const CourseManagement = () => {
   // Fetch courses and teachers from backend
   useEffect(() => {
     fetchCourses();
+    fetchDepartments();
     // Only admin/teacher can fetch the full students list
     if (user?.role !== "student") {
       fetchTeachers();
       fetchStudents();
     }
   }, [user?.role, user?._id]);
+
+  const fetchDepartments = async () => {
+    try {
+      const token = getAuthToken();
+      if (!token) {
+        setDepartments([]);
+        return;
+      }
+
+      const response = await fetch(getApiUrl("/courses/departments"), {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const json = await response.json();
+        setDepartments(json.data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching departments:", error);
+      setDepartments([]);
+    }
+  };
 
   const fetchCourses = async () => {
     try {
@@ -323,7 +361,9 @@ const CourseManagement = () => {
         code: courseData.code,
         description: courseData.description,
         credits: courseData.credits,
-        maxStudents: courseData.maxStudents,
+        department: courseData.department,
+        year: courseData.year,
+        semester: courseData.semester,
         schedule: {
           days: courseData.schedule.days,
           startTime: courseData.schedule.startTime,
@@ -395,7 +435,9 @@ const CourseManagement = () => {
         code: courseData.code,
         description: courseData.description,
         credits: courseData.credits,
-        maxStudents: courseData.maxStudents,
+        department: courseData.department,
+        year: courseData.year,
+        semester: courseData.semester,
         schedule: {
           days: courseData.schedule.days,
           startTime: courseData.schedule.startTime,
@@ -508,7 +550,9 @@ const CourseManagement = () => {
         endTime: "",
         room: "",
       },
-      maxStudents: 30,
+      department: null,
+      year: "",
+      semester: "",
     });
   };
 
@@ -525,6 +569,11 @@ const CourseManagement = () => {
         "Please select at least one day for the schedule",
         "error",
       );
+      return;
+    }
+
+    if (!formData.department || !formData.year || !formData.semester) {
+      showNotification("Please select department, year and semester", "error");
       return;
     }
 
@@ -549,7 +598,9 @@ const CourseManagement = () => {
         endTime: "",
         room: "",
       },
-      maxStudents: course.maxStudents || 30,
+      department: course.department?._id || course.department || null,
+      year: course.year || "",
+      semester: course.semester || "",
     });
     setShowCreateModal(true);
   };
@@ -575,10 +626,7 @@ const CourseManagement = () => {
     } else {
       setFormData((prev) => ({
         ...prev,
-        [name]:
-          name === "credits" || name === "maxStudents"
-            ? parseInt(value)
-            : value,
+        [name]: name === "credits" ? parseInt(value) : value,
       }));
 
       // Auto-generate course code when main course name changes
@@ -656,9 +704,9 @@ const CourseManagement = () => {
           } border px-4 py-3 rounded-lg shadow-lg flex items-start space-x-3 animate-in slide-in-from-right-full duration-500`}
         >
           {notification.type === "error" ? (
-            <AlertCircle className="flex-shrink-0 mt-0.5" size={20} />
+            <AlertCircle className="shrink-0 mt-0.5" size={20} />
           ) : (
-            <CheckCircle className="flex-shrink-0 mt-0.5" size={20} />
+            <CheckCircle className="shrink-0 mt-0.5" size={20} />
           )}
           <div className="flex-1">
             <p className="text-sm font-medium">{notification.message}</p>
@@ -678,8 +726,50 @@ const CourseManagement = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
             <div className="flex items-center space-x-3 mb-4">
-              <div className="flex-shrink-0">
+              <div className="shrink-0">
                 <Info className="text-yellow-500" size={24} />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Year
+                  </label>
+                  <select
+                    name="year"
+                    value={formData.year}
+                    onChange={handleInputChange}
+                    className="input w-full"
+                    required
+                  >
+                    <option value="">Select Year</option>
+                    <option value="1st Year">1st Year</option>
+                    <option value="2nd Year">2nd Year</option>
+                    <option value="3rd Year">3rd Year</option>
+                    <option value="4th Year">4th Year</option>
+                    <option value="5th Year">5th Year</option>
+                    <option value="Remedial">Remedial</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Semester
+                  </label>
+                  <select
+                    name="semester"
+                    value={formData.semester}
+                    onChange={handleInputChange}
+                    className="input w-full"
+                    required
+                  >
+                    <option value="">Select Semester</option>
+                    <option value="1st Semester">1st Semester</option>
+                    <option value="2nd Semester">2nd Semester</option>
+                    <option value="Spring">Spring</option>
+                    <option value="Fall">Fall</option>
+                  </select>
+                </div>
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -754,7 +844,7 @@ const CourseManagement = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full md:w-auto">
-          <div className="input relative flex-grow">
+          <div className="input relative grow">
             <Search
               className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
               size={20}
@@ -768,7 +858,7 @@ const CourseManagement = () => {
             />
           </div>
 
-          {user?.role !== "student" && (
+          {user?.role !== "student" && user?.role !== "teacher" && (
             <button
               onClick={handleCreateNew}
               className="btn btn-primary flex items-center justify-center space-x-2 cursor-pointer"
@@ -776,6 +866,174 @@ const CourseManagement = () => {
               <Plus size={20} />
               <span>Create Course</span>
             </button>
+          )}
+          {user?.role === "admin" && (
+            <>
+              <button
+                onClick={() => setShowDeptModal(true)}
+                className="btn btn-secondary flex items-center justify-center space-x-2"
+              >
+                <span>Create Department</span>
+              </button>
+
+              {showDeptModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        Create Department
+                      </h3>
+                      <button
+                        onClick={() => setShowDeptModal(false)}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        if (!deptForm.name.trim()) {
+                          showNotification(
+                            "Department name is required",
+                            "error",
+                          );
+                          return;
+                        }
+
+                        setDeptSubmitting(true);
+                        try {
+                          const token = getAuthToken();
+                          const res = await fetch(
+                            getApiUrl("/courses/departments"),
+                            {
+                              method: "POST",
+                              headers: {
+                                "Content-Type": "application/json",
+                                Authorization: token ? `Bearer ${token}` : "",
+                              },
+                              body: JSON.stringify(deptForm),
+                            },
+                          );
+
+                          const text = await res.text();
+                          let json;
+                          try {
+                            json = JSON.parse(text);
+                          } catch (e) {
+                            json = { message: text };
+                          }
+
+                          if (!res.ok) {
+                            const msg =
+                              json?.message ||
+                              res.statusText ||
+                              "Failed to create department";
+                            throw new Error(msg);
+                          }
+
+                          // If server returned created dept id, preselect it for the course form
+                          const newDeptId =
+                            json?.data?._id || json?._id || null;
+                          if (newDeptId) {
+                            setFormData((prev) => ({
+                              ...prev,
+                              department: newDeptId,
+                            }));
+                          }
+
+                          await fetchDepartments();
+                          setShowDeptModal(false);
+                          setDeptForm({ name: "", code: "", description: "" });
+                          showNotification("Department created", "success");
+                        } catch (err) {
+                          console.error("Create department error:", err);
+                          showNotification(
+                            `Failed to create department: ${err.message}`,
+                            "error",
+                          );
+                        } finally {
+                          setDeptSubmitting(false);
+                        }
+                      }}
+                    >
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Name *
+                          </label>
+                          <input
+                            name="name"
+                            value={deptForm.name}
+                            onChange={(e) =>
+                              setDeptForm((p) => ({
+                                ...p,
+                                name: e.target.value,
+                              }))
+                            }
+                            className="input w-full"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Code
+                          </label>
+                          <input
+                            name="code"
+                            value={deptForm.code}
+                            onChange={(e) =>
+                              setDeptForm((p) => ({
+                                ...p,
+                                code: e.target.value,
+                              }))
+                            }
+                            className="input w-full"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Description
+                          </label>
+                          <textarea
+                            name="description"
+                            value={deptForm.description}
+                            onChange={(e) =>
+                              setDeptForm((p) => ({
+                                ...p,
+                                description: e.target.value,
+                              }))
+                            }
+                            className="input w-full"
+                            rows={3}
+                          />
+                        </div>
+
+                        <div className="flex justify-end space-x-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowDeptModal(false)}
+                            className="btn btn-secondary"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            className="btn btn-primary"
+                            disabled={deptSubmitting}
+                          >
+                            {deptSubmitting ? "Saving..." : "Create"}
+                          </button>
+                        </div>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -785,7 +1043,6 @@ const CourseManagement = () => {
           const assignedTeacher = getAssignedTeacher(course);
           const displayCode = course.code.split("-")[0];
           const studentCount = getStudentCountForCourse(course.name);
-          const maxStudents = course.maxStudents || 30;
 
           return (
             <div
@@ -809,31 +1066,18 @@ const CourseManagement = () => {
                 </div>
 
                 {/* Enrollment Count Badge - Right Side */}
-                <div className="flex flex-col items-end space-y-2 ml-2 flex-shrink-0">
+                <div className="flex flex-col items-end space-y-2 ml-2 shrink-0">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
                     {course.credits} credits
                   </span>
 
                   {user?.role === "admin" && (
-                    <div
-                      className={`inline-flex flex-col items-center px-3 py-1 rounded-lg text-xs font-medium ${
-                        studentCount >= maxStudents
-                          ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
-                          : studentCount > maxStudents * 0.8
-                            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
-                            : "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                      }`}
-                    >
+                    <div className="inline-flex flex-col items-center px-3 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
                       <div className="flex items-center">
                         <Users size={12} className="mr-1" />
                         <span className="font-bold">
-                          {studentCount}/{maxStudents}
+                          {studentCount} enrolled
                         </span>
-                      </div>
-                      <div className="text-xs mt-1">
-                        {studentCount >= maxStudents
-                          ? "Full"
-                          : `${maxStudents - studentCount} spots left`}
                       </div>
                     </div>
                   )}
@@ -843,7 +1087,7 @@ const CourseManagement = () => {
               <div className="space-y-3 mb-4">
                 {/* Assigned Teacher Section */}
                 <div className="flex items-start text-sm text-gray-600 dark:text-gray-400">
-                  <User size={16} className="mr-2 flex-shrink-0 mt-0.5" />
+                  <User size={16} className="mr-2 shrink-0 mt-0.5" />
                   <div className="flex-1">
                     <span className="font-medium">Assigned Teacher: </span>
                     {assignedTeacher ? (
@@ -851,7 +1095,7 @@ const CourseManagement = () => {
                         <div className="flex items-center text-xs bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded">
                           <CheckCircle
                             size={12}
-                            className="mr-1 text-green-500 flex-shrink-0"
+                            className="mr-1 text-green-500 shrink-0"
                           />
                           <span className="text-gray-700 dark:text-gray-300">
                             {assignedTeacher.name}
@@ -867,13 +1111,13 @@ const CourseManagement = () => {
                 </div>
 
                 <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                  <Clock size={16} className="mr-2 flex-shrink-0" />
+                  <Clock size={16} className="mr-2 shrink-0" />
                   <span className="flex-1">{formatSchedule(course)}</span>
                 </div>
 
                 {course.schedule?.room && (
                   <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                    <MapPin size={16} className="mr-2 flex-shrink-0" />
+                    <MapPin size={16} className="mr-2 shrink-0" />
                     <span>Room: {course.schedule.room}</span>
                   </div>
                 )}
@@ -1034,7 +1278,26 @@ const CourseManagement = () => {
                 <div>
                                    
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Max Students                  
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Department *
+                      </label>
+                      <select
+                        name="department"
+                        value={formData.department || ""}
+                        onChange={handleInputChange}
+                        className="input w-full"
+                        required
+                      >
+                        <option value="">Select Department</option>
+                        {departments.map((d) => (
+                          <option key={d._id} value={d._id}>
+                            {d.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                     Max Students                  
                   </label>
                                    
                   <input

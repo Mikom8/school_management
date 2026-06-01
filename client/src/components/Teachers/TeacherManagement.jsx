@@ -1145,7 +1145,7 @@ const TeacherManagement = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full md:w-auto">
-          <div className="input relative flex-grow">
+          <div className="input relative grow">
             <Search
               className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
               size={20}
@@ -1217,7 +1217,7 @@ const TeacherManagement = () => {
                   <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                     <Mail
                       size={16}
-                      className="mr-2 flex-shrink-0 text-green-400"
+                      className="mr-2 shrink-0 text-green-400"
                     />
                     <span className="truncate">{teacher.email}</span>
                   </div>
@@ -1227,7 +1227,7 @@ const TeacherManagement = () => {
                     <div className="flex items-center text-gray-600 dark:text-gray-400 mb-2">
                       <BookOpen
                         size={16}
-                        className="mr-2 flex-shrink-0 text-blue-400"
+                        className="mr-2 shrink-0 text-blue-400"
                       />
                       <span>
                         Teaching {teachingCourses.length} subcourse(s)
@@ -1243,7 +1243,7 @@ const TeacherManagement = () => {
                           >
                             <Check
                               size={12}
-                              className="mr-1 text-green-500 flex-shrink-0"
+                              className="mr-1 text-green-500 shrink-0"
                             />
                             <span className="text-gray-500 dark:text-gray-400 truncate">
                               {course.code}: {course.description}
