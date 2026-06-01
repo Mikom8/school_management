@@ -6,7 +6,6 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
     server: {
-    host: true,
-    allowedHosts: ['surgical-shade-activists-sandy.trycloudflare.com']
+    allowedHosts: ['postage-beer-neighborhood-trustee.trycloudflare.com']
   }
 })

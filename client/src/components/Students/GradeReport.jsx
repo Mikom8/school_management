@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
+import SkeletonLoading from "../Common/SkeletonLoading";
 
 const GradeReport = () => {
   const { user } = useAuth();
@@ -139,23 +140,7 @@ const GradeReport = () => {
   };
 
   if (loading) {
-    return (
-      <div className="space-y-6 font-saira">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
-              My Grade Report
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Loading your academic records...
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center justify-center h-64">
-          <Loader className="animate-spin text-blue-600" size={32} />
-        </div>
-      </div>
-    );
+    return <SkeletonLoading />;
   }
 
   if (error) {
@@ -371,7 +356,7 @@ const GradeReport = () => {
                         <td className="py-3 px-4">
                           <span
                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getGradeColor(
-                              grade.grade
+                              grade.grade,
                             )}`}
                           >
                             {grade.grade}

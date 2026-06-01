@@ -14,9 +14,11 @@ import {
   Folder,
   FileText,
   Save,
+  Loader,
 } from "lucide-react";
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
+import SkeletonLoading from "../Common/SkeletonLoading";
 
 const StudentManagement = () => {
   const [students, setStudents] = useState([]);
@@ -30,6 +32,18 @@ const StudentManagement = () => {
   const [gradeReportData, setGradeReportData] = useState(null);
   const [courses, setCourses] = useState([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState({
+    show: false,
+    studentId: null,
+    studentName: "",
+  });
+  const [emailCheck, setEmailCheck] = useState({
+    checking: false,
+    checkedEmail: "",
+    exists: false,
+  });
   const { user } = useAuth();
 
   // Notification state
@@ -139,7 +153,8 @@ const StudentManagement = () => {
   const fetchAvailableCourses = async () => {
     try {
       setCoursesLoading(true);
-      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      const token =
+        localStorage.getItem("token") || sessionStorage.getItem("token");
       const response = await axios.get("/courses", {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
@@ -149,14 +164,14 @@ const StudentManagement = () => {
 
       // Keep only unique course names for the dropdown
       const seen = new Set();
-      const uniqueCourses = (Array.isArray(allCourses) ? allCourses : []).filter(
-        (course) => {
-          const key = course.name.trim().toLowerCase();
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        }
-      );
+      const uniqueCourses = (
+        Array.isArray(allCourses) ? allCourses : []
+      ).filter((course) => {
+        const key = course.name.trim().toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
 
       setCourses(uniqueCourses);
     } catch (error) {
@@ -167,18 +182,23 @@ const StudentManagement = () => {
     }
   };
 
-  const handleDeleteStudent = async (studentId) => {
-    if (!window.confirm("Are you sure you want to delete this student?")) {
-      return;
-    }
+  const handleDeleteStudent = (studentId, studentName) => {
+    setConfirmDialog({ show: true, studentId, studentName });
+  };
 
+  const confirmDelete = async () => {
+    const { studentId } = confirmDialog;
+    setConfirmDialog({ show: false, studentId: null, studentName: "" });
+    setDeletingId(studentId);
     try {
       await axios.delete(`/students/${studentId}`);
-      fetchStudents(); // Refresh the list
-      showNotification("success", "Success", "Student deleted successfully!");
+      fetchStudents();
+      showNotification("success", "Deleted", "Student deleted successfully!");
     } catch (error) {
-      console.error("Error deleting student:", error);
-      showNotification("error", "Error", "Failed to delete student");
+      const msg = error.response?.data?.message || "Failed to delete student";
+      showNotification("error", "Delete Failed", msg);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -207,9 +227,8 @@ const StudentManagement = () => {
 
   const handleUpdateStudent = async (e) => {
     e.preventDefault();
-
     if (!selectedStudent) return;
-
+    setIsSubmitting(true);
     try {
       const updateData = {
         name: editStudent.name,
@@ -222,16 +241,16 @@ const StudentManagement = () => {
         department: editStudent.department,
         address: editStudent.address,
       };
-
       await axios.put(`/students/${selectedStudent._id}`, updateData);
-
       setShowEditForm(false);
       setSelectedStudent(null);
-      fetchStudents(); // Refresh the list
-      showNotification("success", "Success", "Student updated successfully!");
+      fetchStudents();
+      showNotification("success", "Updated", "Student updated successfully!");
     } catch (error) {
-      console.error("Error updating student:", error);
-      showNotification("error", "Error", "Failed to update student");
+      const msg = error.response?.data?.message || "Failed to update student";
+      showNotification("error", "Update Failed", msg);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -286,51 +305,126 @@ const StudentManagement = () => {
     return totalCredits > 0 ? (totalPoints / totalCredits).toFixed(2) : "0.00";
   };
 
+  const checkEmailAvailability = async (email) => {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!normalizedEmail) {
+      setEmailCheck({ checking: false, checkedEmail: "", exists: false });
+      return true;
+    }
+
+    try {
+      setEmailCheck((prev) => ({
+        ...prev,
+        checking: true,
+        checkedEmail: normalizedEmail,
+      }));
+
+      const response = await axios.get("/users/check-email", {
+        params: { email: normalizedEmail },
+      });
+      const exists = Boolean(response.data?.exists);
+
+      setEmailCheck({
+        checking: false,
+        checkedEmail: normalizedEmail,
+        exists,
+      });
+
+      if (exists) {
+        showNotification(
+          "error",
+          "Email Already Registered",
+          "This email is already registered. Please use another email.",
+        );
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      setEmailCheck({
+        checking: false,
+        checkedEmail: normalizedEmail,
+        exists: false,
+      });
+      return true;
+    }
+  };
+
   const handleAddStudent = async (e) => {
     e.preventDefault();
 
+    const cleanedStudent = {
+      ...newStudent,
+      name: newStudent.name.trim(),
+      email: newStudent.email.trim().toLowerCase(),
+      password: newStudent.password,
+      grade: newStudent.grade.trim(),
+      dateOfBirth: newStudent.dateOfBirth,
+      parentName: newStudent.parentName.trim(),
+      parentContact: newStudent.parentContact.trim(),
+      emergencyContact: newStudent.emergencyContact.trim(),
+      course: newStudent.course.trim(),
+      department: newStudent.department.trim(),
+      address: {
+        street: newStudent.address.street.trim(),
+        city: newStudent.address.city.trim(),
+        state: newStudent.address.state.trim(),
+        zipCode: newStudent.address.zipCode.trim(),
+      },
+    };
+
     // Frontend validation
     if (
-      !newStudent.name ||
-      !newStudent.email ||
-      !newStudent.password ||
-      !newStudent.grade ||
-      !newStudent.parentName ||
-      !newStudent.parentContact
+      !cleanedStudent.name ||
+      !cleanedStudent.email ||
+      !cleanedStudent.password ||
+      !cleanedStudent.grade ||
+      !cleanedStudent.parentName ||
+      !cleanedStudent.parentContact
     ) {
       showNotification(
         "warning",
         "Validation Error",
-        "Please fill all required fields (marked with *)"
+        "Please fill all required fields (marked with *)",
       );
       return;
     }
 
-    if (newStudent.password.length < 6) {
+    if (cleanedStudent.password.length < 6) {
       showNotification(
         "warning",
         "Validation Error",
-        "Password must be at least 6 characters long"
+        "Password must be at least 6 characters long",
       );
       return;
     }
 
+    const emailAvailable =
+      emailCheck.checkedEmail === cleanedStudent.email && emailCheck.exists
+        ? false
+        : await checkEmailAvailability(cleanedStudent.email);
+
+    if (!emailAvailable) {
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
-      // Format the data properly for the backend
       const studentData = {
-        name: newStudent.name,
-        email: newStudent.email,
-        password: newStudent.password,
-        grade: newStudent.grade,
+        name: cleanedStudent.name,
+        email: cleanedStudent.email,
+        password: cleanedStudent.password,
+        grade: cleanedStudent.grade,
         dateOfBirth:
-          newStudent.dateOfBirth || new Date().toISOString().split("T")[0],
-        parentName: newStudent.parentName,
-        parentContact: newStudent.parentContact,
+          cleanedStudent.dateOfBirth || new Date().toISOString().split("T")[0],
+        parentName: cleanedStudent.parentName,
+        parentContact: cleanedStudent.parentContact,
         emergencyContact:
-          newStudent.emergencyContact || newStudent.parentContact,
-        course: newStudent.course,
-        department: newStudent.department,
-        address: newStudent.address,
+          cleanedStudent.emergencyContact || cleanedStudent.parentContact,
+        course: cleanedStudent.course,
+        department: cleanedStudent.department,
+        address: cleanedStudent.address,
       };
 
       const response = await axios.post("/students/register", studentData);
@@ -348,33 +442,32 @@ const StudentManagement = () => {
           emergencyContact: "",
           course: "",
           department: "",
-          address: {
-            street: "",
-            city: "",
-            state: "",
-            zipCode: "",
-          },
+          address: { street: "", city: "", state: "", zipCode: "" },
         });
-        fetchStudents(); // Refresh the list
-        showNotification("success", "Success", "Student added successfully!");
+        fetchStudents();
+        showNotification(
+          "success",
+          "Student Registered",
+          `${studentData.name} has been added successfully!`,
+        );
       }
     } catch (error) {
-      // Show the specific validation error
-      if (
-        error.response?.data?.errors &&
-        error.response.data.errors.length > 0
-      ) {
-        const validationError = error.response.data.errors[0];
+      if (error.response?.data?.errors?.length > 0) {
+        const validationMessage = error.response.data.errors
+          .map((ve) => ve.msg)
+          .join(", ");
         showNotification(
           "error",
           "Validation Error",
-          `${validationError.msg} (field: ${validationError.param})`
+          validationMessage || "Please check all required fields",
         );
       } else {
-        const errorMessage =
-          error.response?.data?.message || "Failed to add student";
-        showNotification("error", "Error", errorMessage);
+        const msg =
+          error.response?.data?.message || "Failed to register student";
+        showNotification("error", "Registration Failed", msg);
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -390,6 +483,10 @@ const StudentManagement = () => {
         },
       }));
     } else {
+      if (name === "email") {
+        setEmailCheck({ checking: false, checkedEmail: "", exists: false });
+      }
+
       setNewStudent((prev) => ({
         ...prev,
         [name]: value,
@@ -494,23 +591,7 @@ const StudentManagement = () => {
   };
 
   if (loading && !showGradeReport) {
-    return (
-      <div className="space-y-6 p-4 md:p-6 lg:p-8">
-        <div className="flex justify-between items-center flex-wrap">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-              Student Management
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Loading students...
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
-      </div>
-    );
+    return <SkeletonLoading />;
   }
 
   return (
@@ -645,7 +726,7 @@ const StudentManagement = () => {
                             <td className="py-3 px-4">
                               <span
                                 className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getGradeColor(
-                                  grade.grade
+                                  grade.grade,
                                 )}`}
                               >
                                 {grade.grade}
@@ -905,15 +986,27 @@ const StudentManagement = () => {
                   <button
                     type="button"
                     onClick={() => setShowEditForm(false)}
-                    className="btn btn-secondary cursor-pointer"
+                    disabled={isSubmitting}
+                    className="btn btn-secondary cursor-pointer disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="btn btn-primary cursor-pointer flex items-center space-x-2"
+                    disabled={isSubmitting}
+                    className="btn btn-primary cursor-pointer flex items-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    <span>Update Student</span>
+                    {isSubmitting ? (
+                      <>
+                        <Loader size={16} className="animate-spin" />
+                        <span>Updating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save size={16} />
+                        <span>Update Student</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </form>
@@ -986,9 +1079,20 @@ const StudentManagement = () => {
                       required
                       value={newStudent.email}
                       onChange={handleInputChange}
+                      onBlur={(e) => checkEmailAvailability(e.target.value)}
                       className="input"
                       placeholder="Enter student's college email"
                     />
+                    {emailCheck.checking && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Checking email...
+                      </p>
+                    )}
+                    {!emailCheck.checking && emailCheck.exists && (
+                      <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                        Email already registered
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -1190,15 +1294,27 @@ const StudentManagement = () => {
                   <button
                     type="button"
                     onClick={() => setShowAddForm(false)}
-                    className="btn btn-secondary cursor-pointer"
+                    disabled={isSubmitting}
+                    className="btn btn-secondary cursor-pointer disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="btn btn-primary cursor-pointer"
+                    disabled={isSubmitting}
+                    className="btn btn-primary cursor-pointer flex items-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    Add Student
+                    {isSubmitting ? (
+                      <>
+                        <Loader size={16} className="animate-spin" />
+                        <span>Registering...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus size={16} />
+                        <span>Add Student</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </form>
@@ -1324,11 +1440,21 @@ const StudentManagement = () => {
                               <Edit size={16} className="sm:size-4" />
                             </button>
                             <button
-                              className="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 cursor-pointer"
+                              className="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                               title="Delete"
-                              onClick={() => handleDeleteStudent(student._id)}
+                              disabled={deletingId === student._id}
+                              onClick={() =>
+                                handleDeleteStudent(
+                                  student._id,
+                                  student.user?.name,
+                                )
+                              }
                             >
-                              <Trash2 size={16} className="sm:size-4" />
+                              {deletingId === student._id ? (
+                                <Loader size={16} className="animate-spin" />
+                              ) : (
+                                <Trash2 size={16} className="sm:size-4" />
+                              )}
                             </button>
                           </>
                         )}
@@ -1341,6 +1467,54 @@ const StudentManagement = () => {
           </div>
         )}
       </div>
+
+      {/* Custom Confirm Delete Dialog */}
+      {confirmDialog.show && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
+                <AlertCircle
+                  className="text-red-600 dark:text-red-400"
+                  size={22}
+                />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Delete Student
+              </h3>
+            </div>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
+              Are you sure you want to delete{" "}
+              <span className="font-semibold text-gray-900 dark:text-white">
+                {confirmDialog.studentName}
+              </span>
+              ? This will permanently remove their account and all associated
+              data.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() =>
+                  setConfirmDialog({
+                    show: false,
+                    studentId: null,
+                    studentName: "",
+                  })
+                }
+                className="btn btn-secondary cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors cursor-pointer"
+              >
+                <Trash2 size={16} />
+                <span>Delete Student</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

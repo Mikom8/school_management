@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { GraduationCap, Eye, EyeOff } from "lucide-react";
+import { GraduationCap, Eye, EyeOff, Loader } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
 const Login = () => {
@@ -138,11 +138,11 @@ const Login = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full btn btn-primary flex items-center justify-center space-x-2 py-3"
+              className="w-full btn btn-primary flex items-center justify-center space-x-2 py-3 cursor-pointer"
             >
               {isLoading ? (
                 <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <Loader className="animate-spin" size={20} />
                   <span>Signing in...</span>
                 </>
               ) : (

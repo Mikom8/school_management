@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, MapPin, Users, Plus, Loader } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
+import SkeletonLoading from '../Common/SkeletonLoading';
 
 const Schedule = () => {
   const { user } = useAuth();
@@ -52,19 +53,7 @@ const Schedule = () => {
   };
 
   if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">Schedule</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">Loading your schedule...</p>
-          </div>
-        </div>
-        <div className="flex items-center justify-center h-64">
-          <Loader className="animate-spin text-blue-600" size={32} />
-        </div>
-      </div>
-    );
+    return <SkeletonLoading />;
   }
 
   return (

@@ -17,6 +17,7 @@ import {
   User,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
+import SkeletonLoading from "../Common/SkeletonLoading";
 
 const CourseManagement = () => {
   const [courses, setCourses] = useState([]);
@@ -27,6 +28,8 @@ const CourseManagement = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
   const { user } = useAuth();
   const [notification, setNotification] = useState({
     show: false,
@@ -69,7 +72,7 @@ const CourseManagement = () => {
     title,
     message,
     onConfirm,
-    onCancel = () => {}
+    onCancel = () => {},
   ) => {
     setConfirmDialog({
       show: true,
@@ -92,7 +95,7 @@ const CourseManagement = () => {
 
     // Count how many courses already have this main course name
     const sameMainCourseCount = existingCourses.filter(
-      (course) => course.name === courseName
+      (course) => course.name === courseName,
     ).length;
 
     // Use base code + incrementing suffix to ensure uniqueness
@@ -296,7 +299,7 @@ const CourseManagement = () => {
     return students.filter(
       (student) =>
         student.course &&
-        student.course.toLowerCase() === courseName.toLowerCase()
+        student.course.toLowerCase() === courseName.toLowerCase(),
     ).length;
   };
 
@@ -307,7 +310,7 @@ const CourseManagement = () => {
     return students.filter(
       (student) =>
         student.course &&
-        student.course.toLowerCase() === courseName.toLowerCase()
+        student.course.toLowerCase() === courseName.toLowerCase(),
     );
   };
 
@@ -335,7 +338,10 @@ const CourseManagement = () => {
           ...courseData,
           enrolledStudents: [],
           currentEnrollment: 0,
-          teacher: user?.role === "teacher" ? { _id: user._id, name: user.name } : null,
+          teacher:
+            user?.role === "teacher"
+              ? { _id: user._id, name: user.name }
+              : null,
         };
         setCourses((prev) => [...prev, newCourse]);
         setShowCreateModal(false);
@@ -345,7 +351,8 @@ const CourseManagement = () => {
       }
 
       // Teachers use their own endpoint that auto-assigns them
-      const endpoint = user?.role === "teacher" ? "/courses/teacher-create" : "/courses";
+      const endpoint =
+        user?.role === "teacher" ? "/courses/teacher-create" : "/courses";
 
       const response = await fetch(getApiUrl(endpoint), {
         method: "POST",
@@ -360,7 +367,7 @@ const CourseManagement = () => {
         const errorText = await response.text();
         console.error("Server error response:", errorText);
         throw new Error(
-          `Failed to create course: ${response.status} - ${errorText}`
+          `Failed to create course: ${response.status} - ${errorText}`,
         );
       }
 
@@ -373,6 +380,8 @@ const CourseManagement = () => {
     } catch (error) {
       console.error("Error creating course:", error);
       showNotification(`Failed to create course: ${error.message}`, "error");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -405,8 +414,8 @@ const CourseManagement = () => {
                   ...courseData,
                   teacher: course.teacher,
                 }
-              : course
-          )
+              : course,
+          ),
         );
         setEditingCourse(null);
         resetForm();
@@ -426,13 +435,13 @@ const CourseManagement = () => {
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(
-          `Failed to update course: ${response.status} - ${errorText}`
+          `Failed to update course: ${response.status} - ${errorText}`,
         );
       }
 
       const updatedCourse = await response.json();
       setCourses((prev) =>
-        prev.map((course) => (course._id === id ? updatedCourse : course))
+        prev.map((course) => (course._id === id ? updatedCourse : course)),
       );
       setEditingCourse(null);
       resetForm();
@@ -440,6 +449,8 @@ const CourseManagement = () => {
     } catch (error) {
       console.error("Error updating course:", error);
       showNotification(`Failed to update course: ${error.message}`, "error");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -450,6 +461,7 @@ const CourseManagement = () => {
       "Delete Course",
       `Are you sure you want to delete "${courseToDelete?.name} - ${courseToDelete?.description}"? This action cannot be undone.`,
       async () => {
+        setDeletingId(id);
         try {
           const token = getAuthToken();
           if (!token) {
@@ -475,10 +487,12 @@ const CourseManagement = () => {
           console.error("Error deleting course:", error);
           showNotification(
             `Failed to delete course: ${error.message}`,
-            "error"
+            "error",
           );
+        } finally {
+          setDeletingId(null);
         }
-      }
+      },
     );
   };
 
@@ -509,11 +523,12 @@ const CourseManagement = () => {
     if (formData.schedule.days.length === 0) {
       showNotification(
         "Please select at least one day for the schedule",
-        "error"
+        "error",
       );
       return;
     }
 
+    setIsSubmitting(true);
     if (editingCourse) {
       updateCourse(editingCourse._id, formData);
     } else {
@@ -626,12 +641,7 @@ const CourseManagement = () => {
   ];
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader className="animate-spin text-primary-600" size={32} />
-        <span className="ml-2 text-gray-600">Loading courses...</span>
-      </div>
-    );
+    return <SkeletonLoading />;
   }
 
   return (
@@ -804,28 +814,29 @@ const CourseManagement = () => {
                     {course.credits} credits
                   </span>
 
-                  {/* Student Enrollment Count */}
-                  <div
-                    className={`inline-flex flex-col items-center px-3 py-1 rounded-lg text-xs font-medium ${
-                      studentCount >= maxStudents
-                        ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
-                        : studentCount > maxStudents * 0.8
-                        ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
-                        : "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                    }`}
-                  >
-                    <div className="flex items-center">
-                      <Users size={12} className="mr-1" />
-                      <span className="font-bold">
-                        {studentCount}/{maxStudents}
-                      </span>
+                  {user?.role === "admin" && (
+                    <div
+                      className={`inline-flex flex-col items-center px-3 py-1 rounded-lg text-xs font-medium ${
+                        studentCount >= maxStudents
+                          ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
+                          : studentCount > maxStudents * 0.8
+                            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
+                            : "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                      }`}
+                    >
+                      <div className="flex items-center">
+                        <Users size={12} className="mr-1" />
+                        <span className="font-bold">
+                          {studentCount}/{maxStudents}
+                        </span>
+                      </div>
+                      <div className="text-xs mt-1">
+                        {studentCount >= maxStudents
+                          ? "Full"
+                          : `${maxStudents - studentCount} spots left`}
+                      </div>
                     </div>
-                    <div className="text-xs mt-1">
-                      {studentCount >= maxStudents
-                        ? "Full"
-                        : `${maxStudents - studentCount} spots left`}
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
@@ -868,24 +879,32 @@ const CourseManagement = () => {
                 )}
               </div>
 
-              {user?.role !== "student" && (user?.role === "admin" || (user?.role === "teacher" && assignedTeacher?._id === user._id)) && (
-                <div className="flex justify-between pt-4 border-t border-gray-200 dark:border-gray-600">
-                  <button
-                    onClick={() => handleEdit(course)}
-                    className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium cursor-pointer"
-                  >
-                    <Edit size={16} />
-                    <span>Edit</span>
-                  </button>
-                  <button
-                    onClick={() => deleteCourse(course._id)}
-                    className="flex items-center space-x-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium cursor-pointer"
-                  >
-                    <Trash2 size={16} />
-                    <span>Delete</span>
-                  </button>
-                </div>
-              )}
+              {user?.role !== "student" &&
+                (user?.role === "admin" ||
+                  (user?.role === "teacher" &&
+                    assignedTeacher?._id === user._id)) && (
+                  <div className="flex justify-between pt-4 border-t border-gray-200 dark:border-gray-600">
+                    <button
+                      onClick={() => handleEdit(course)}
+                      className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium cursor-pointer"
+                    >
+                      <Edit size={16} />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      onClick={() => deleteCourse(course._id)}
+                      disabled={deletingId === course._id}
+                      className="flex items-center space-x-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {deletingId === course._id ? (
+                        <Loader size={16} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={16} />
+                      )}
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                )}
             </div>
           );
         })}
@@ -901,8 +920,8 @@ const CourseManagement = () => {
             {user?.role === "student"
               ? "You are not enrolled in any courses yet. Contact your admin to get enrolled."
               : courses.length === 0
-              ? "Create your first course to get started."
-              : "Try adjusting your search."}
+                ? "Create your first course to get started."
+                : "Try adjusting your search."}
           </p>
         </div>
       )}
@@ -1132,17 +1151,28 @@ const CourseManagement = () => {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="btn btn-secondary cursor-pointer"
+                  disabled={isSubmitting}
+                  className="btn btn-secondary cursor-pointer disabled:opacity-50"
                 >
                                     Cancel                
                 </button>
                                
                 <button
                   type="submit"
-                  className="btn btn-primary flex items-center space-x-2 cursor-pointer"
+                  disabled={isSubmitting}
+                  className="btn btn-primary flex items-center space-x-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                                    <Save size={16} />                 
-                  <span>{editingCourse ? "Update" : "Create"} Course</span>     
+                  {isSubmitting ? (
+                    <>
+                      <Loader size={16} className="animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save size={16} />
+                      <span>{editingCourse ? "Update" : "Create"} Course</span>
+                    </>
+                  )}
                            
                 </button>
                              

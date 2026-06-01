@@ -15,9 +15,11 @@ import {
   Info,
   ChevronDown,
   ChevronRight,
+  Loader,
 } from "lucide-react";
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
+import SkeletonLoading from "../Common/SkeletonLoading";
 
 // Custom Popup Component
 const CustomPopup = ({
@@ -149,6 +151,8 @@ const TeacherManagement = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState(null);
   const [expandedCourses, setExpandedCourses] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
   const { user } = useAuth();
 
   // Popup states
@@ -180,7 +184,7 @@ const TeacherManagement = () => {
     title,
     message,
     onConfirm = null,
-    onCancel = null
+    onCancel = null,
   ) => {
     setPopup({
       show: true,
@@ -237,7 +241,7 @@ const TeacherManagement = () => {
       showPopup(
         "error",
         "Error",
-        "Failed to fetch teachers. Using sample data."
+        "Failed to fetch teachers. Using sample data.",
       );
     } finally {
       setLoading(false);
@@ -314,7 +318,7 @@ const TeacherManagement = () => {
       showPopup(
         "error",
         "Error",
-        "Failed to fetch courses. Using sample data."
+        "Failed to fetch courses. Using sample data.",
       );
     }
   };
@@ -323,24 +327,24 @@ const TeacherManagement = () => {
   const filteredTeachers = (teachers || []).filter(
     (teacher) =>
       teacher.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      teacher.email?.toLowerCase().includes(searchTerm.toLowerCase())
+      teacher.email?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  // Delete Teacher
   const handleDeleteTeacher = async (teacher) => {
     showPopup(
       "warning",
       "Delete Teacher",
       `Are you sure you want to delete ${teacher.name}? This will also remove them from all assigned courses.`,
       async () => {
+        setDeletingId(teacher._id);
         try {
           const token = getAuthToken();
 
           // First, remove this teacher from all courses they teach
           const teacherCourses = courses.flatMap((mainCourse) =>
             mainCourse.subcourses.filter(
-              (subcourse) => subcourse.teacher === teacher._id
-            )
+              (subcourse) => subcourse.teacher === teacher._id,
+            ),
           );
 
           for (const course of teacherCourses) {
@@ -351,7 +355,7 @@ const TeacherManagement = () => {
               },
               {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
-              }
+              },
             );
           }
 
@@ -366,8 +370,10 @@ const TeacherManagement = () => {
         } catch (error) {
           console.error("Error deleting teacher:", error);
           showPopup("error", "Error", "Failed to delete teacher");
+        } finally {
+          setDeletingId(null);
         }
-      }
+      },
     );
   };
 
@@ -397,11 +403,12 @@ const TeacherManagement = () => {
       showPopup(
         "warning",
         "Validation Error",
-        "Please fill all required fields"
+        "Please fill all required fields",
       );
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const token = getAuthToken();
       // First update the teacher's basic info
@@ -414,14 +421,14 @@ const TeacherManagement = () => {
         },
         {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
-        }
+        },
       );
 
       // Update course assignments - set teacher for selected subcourses
       for (const mainCourse of courses) {
         for (const subcourse of mainCourse.subcourses) {
           const shouldBeAssigned = editingTeacher.assignedSubcourses.includes(
-            subcourse._id
+            subcourse._id,
           );
           const isCurrentlyAssigned = subcourse.teacher === editingTeacher._id;
 
@@ -434,7 +441,7 @@ const TeacherManagement = () => {
               },
               {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
-              }
+              },
             );
           } else if (!shouldBeAssigned && isCurrentlyAssigned) {
             // Remove teacher from this subcourse
@@ -445,7 +452,7 @@ const TeacherManagement = () => {
               },
               {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
-              }
+              },
             );
           }
         }
@@ -458,10 +465,11 @@ const TeacherManagement = () => {
     } catch (error) {
       console.error("Error updating teacher:", error);
       showPopup("error", "Error", "Failed to update teacher");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // Add Teacher
   const handleAddTeacher = async (e) => {
     e.preventDefault();
 
@@ -469,7 +477,7 @@ const TeacherManagement = () => {
       showPopup(
         "warning",
         "Validation Error",
-        "Please fill all required fields"
+        "Please fill all required fields",
       );
       return;
     }
@@ -478,11 +486,12 @@ const TeacherManagement = () => {
       showPopup(
         "warning",
         "Validation Error",
-        "Password must be at least 6 characters long"
+        "Password must be at least 6 characters long",
       );
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const token = getAuthToken();
       // Create teacher first
@@ -496,7 +505,7 @@ const TeacherManagement = () => {
         },
         {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
-        }
+        },
       );
 
       const newTeacherId = teacherResponse.data._id;
@@ -512,7 +521,7 @@ const TeacherManagement = () => {
               },
               {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
-              }
+              },
             );
           }
         }
@@ -532,6 +541,8 @@ const TeacherManagement = () => {
     } catch (error) {
       console.error("Error adding teacher:", error);
       showPopup("error", "Error", "Failed to add teacher");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -559,7 +570,7 @@ const TeacherManagement = () => {
     if (isForNewTeacher) {
       const allSubcourseIds = mainCourse.subcourses.map((sc) => sc._id);
       const currentlyAssigned = newTeacher.assignedSubcourses.filter((id) =>
-        allSubcourseIds.includes(id)
+        allSubcourseIds.includes(id),
       ).length;
 
       if (currentlyAssigned === allSubcourseIds.length) {
@@ -567,7 +578,7 @@ const TeacherManagement = () => {
         setNewTeacher((prev) => ({
           ...prev,
           assignedSubcourses: prev.assignedSubcourses.filter(
-            (id) => !allSubcourseIds.includes(id)
+            (id) => !allSubcourseIds.includes(id),
           ),
         }));
       } else {
@@ -582,7 +593,7 @@ const TeacherManagement = () => {
     } else {
       const allSubcourseIds = mainCourse.subcourses.map((sc) => sc._id);
       const currentlyAssigned = editingTeacher.assignedSubcourses.filter((id) =>
-        allSubcourseIds.includes(id)
+        allSubcourseIds.includes(id),
       ).length;
 
       if (currentlyAssigned === allSubcourseIds.length) {
@@ -590,7 +601,7 @@ const TeacherManagement = () => {
         setEditingTeacher((prev) => ({
           ...prev,
           assignedSubcourses: prev.assignedSubcourses.filter(
-            (id) => !allSubcourseIds.includes(id)
+            (id) => !allSubcourseIds.includes(id),
           ),
         }));
       } else {
@@ -608,7 +619,7 @@ const TeacherManagement = () => {
   const toggleSubcourseAssignment = (
     subcourseId,
     mainCourseId,
-    isForNewTeacher = false
+    isForNewTeacher = false,
   ) => {
     if (isForNewTeacher) {
       setNewTeacher((prev) => ({
@@ -632,7 +643,7 @@ const TeacherManagement = () => {
     if (!mainCourse) return false;
 
     const assignedSubcourses = mainCourse.subcourses.filter((sc) =>
-      teacherData?.assignedSubcourses?.includes(sc._id)
+      teacherData?.assignedSubcourses?.includes(sc._id),
     );
 
     // Consider main course assigned if any subcourse is assigned
@@ -648,7 +659,7 @@ const TeacherManagement = () => {
     if (!mainCourse) return false;
 
     return mainCourse.subcourses.every((sc) =>
-      teacherData?.assignedSubcourses?.includes(sc._id)
+      teacherData?.assignedSubcourses?.includes(sc._id),
     );
   };
 
@@ -683,23 +694,7 @@ const TeacherManagement = () => {
   };
 
   if (loading) {
-    return (
-      <div className="space-y-6 font-poppins">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Teacher Management
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Loading teachers...
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
-      </div>
-    );
+    return <SkeletonLoading />;
   }
 
   return (
@@ -796,15 +791,15 @@ const TeacherManagement = () => {
                       {courses.map((mainCourse) => {
                         const isAssigned = isCourseAssigned(
                           mainCourse._id,
-                          newTeacher
+                          newTeacher,
                         );
                         const allAssigned = isAllSubcoursesAssigned(
                           mainCourse._id,
-                          newTeacher
+                          newTeacher,
                         );
                         const isExpanded = expandedCourses[mainCourse._id];
                         const assignedSubcourses = mainCourse.subcourses.filter(
-                          (sub) => isSubcourseAssigned(sub._id, newTeacher)
+                          (sub) => isSubcourseAssigned(sub._id, newTeacher),
                         ).length;
 
                         return (
@@ -869,14 +864,14 @@ const TeacherManagement = () => {
                                     subcourse={subcourse}
                                     isAssigned={isSubcourseAssigned(
                                       subcourse._id,
-                                      newTeacher
+                                      newTeacher,
                                     )}
                                     isParentAssigned={true}
                                     onToggle={() =>
                                       toggleSubcourseAssignment(
                                         subcourse._id,
                                         mainCourse._id,
-                                        true
+                                        true,
                                       )
                                     }
                                   />
@@ -894,15 +889,27 @@ const TeacherManagement = () => {
                   <button
                     type="button"
                     onClick={() => setShowAddForm(false)}
-                    className="btn btn-secondary cursor-pointer"
+                    disabled={isSubmitting}
+                    className="btn btn-secondary cursor-pointer disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="btn btn-primary cursor-pointer"
+                    disabled={isSubmitting}
+                    className="btn btn-primary cursor-pointer flex items-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    Add Teacher
+                    {isSubmitting ? (
+                      <>
+                        <Loader size={16} className="animate-spin" />
+                        <span>Registering...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus size={16} />
+                        <span>Add Teacher</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </form>
@@ -997,15 +1004,15 @@ const TeacherManagement = () => {
                       {courses.map((mainCourse) => {
                         const isAssigned = isCourseAssigned(
                           mainCourse._id,
-                          editingTeacher
+                          editingTeacher,
                         );
                         const allAssigned = isAllSubcoursesAssigned(
                           mainCourse._id,
-                          editingTeacher
+                          editingTeacher,
                         );
                         const isExpanded = expandedCourses[mainCourse._id];
                         const assignedSubcourses = mainCourse.subcourses.filter(
-                          (sub) => isSubcourseAssigned(sub._id, editingTeacher)
+                          (sub) => isSubcourseAssigned(sub._id, editingTeacher),
                         ).length;
 
                         return (
@@ -1069,14 +1076,14 @@ const TeacherManagement = () => {
                                     subcourse={subcourse}
                                     isAssigned={isSubcourseAssigned(
                                       subcourse._id,
-                                      editingTeacher
+                                      editingTeacher,
                                     )}
                                     isParentAssigned={true}
                                     onToggle={() =>
                                       toggleSubcourseAssignment(
                                         subcourse._id,
                                         mainCourse._id,
-                                        false
+                                        false,
                                       )
                                     }
                                   />
@@ -1094,16 +1101,27 @@ const TeacherManagement = () => {
                   <button
                     type="button"
                     onClick={() => setEditingTeacher(null)}
-                    className="btn btn-secondary cursor-pointer"
+                    disabled={isSubmitting}
+                    className="btn btn-secondary cursor-pointer disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="btn btn-primary cursor-pointer"
+                    disabled={isSubmitting}
+                    className="btn btn-primary cursor-pointer flex items-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    <Save size={20} className="mr-2 inline" />
-                    Update Teacher
+                    {isSubmitting ? (
+                      <>
+                        <Loader size={16} className="animate-spin" />
+                        <span>Updating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save size={20} className="mr-2 inline" />
+                        <span>Update Teacher</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </form>
@@ -1263,10 +1281,15 @@ const TeacherManagement = () => {
                       <span>Edit</span>
                     </button>
                     <button
-                      className="flex items-center space-x-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium cursor-pointer"
+                      className="flex items-center space-x-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                       onClick={() => handleDeleteTeacher(teacher)}
+                      disabled={deletingId === teacher._id}
                     >
-                      <Trash2 size={16} />
+                      {deletingId === teacher._id ? (
+                        <Loader size={16} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={16} />
+                      )}
                       <span>Remove</span>
                     </button>
                   </div>

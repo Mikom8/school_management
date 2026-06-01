@@ -6,7 +6,7 @@ const createInitialUsers = async () => {
   try {
     // Connect to database
     await mongoose.connect(
-      process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/school_management"
+      process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/school_management",
     );
     console.log("Connected to MongoDB");
 

@@ -23,8 +23,16 @@ import {
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
 import { motion } from "framer-motion";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-
+import SkeletonLoading from "../Common/SkeletonLoading";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
 
 // Create a mapping of icon names to components
 const iconMap = {
@@ -122,8 +130,6 @@ const Dashboard = () => {
     }
   }, [user?.role]);
 
-
-
   // Custom popup function
   const showCustomPopup = (message, type = "success") => {
     setPopupMessage(message);
@@ -171,12 +177,10 @@ const Dashboard = () => {
     }
   };
 
-
-
   // Remove activity from recent activity
   const removeActivity = (activityId) => {
     setRecentActivity((prev) =>
-      prev.filter((activity) => activity.id !== activityId)
+      prev.filter((activity) => activity.id !== activityId),
     );
     showCustomPopup("Activity removed", "success");
   };
@@ -204,7 +208,7 @@ const Dashboard = () => {
     try {
       const response = await axios.get("/dashboard/recent-activity");
       const dbActivities = response.data?.data || [];
-      
+
       const parsedActivities = dbActivities.map((activity) => ({
         id: activity._id,
         type: activity.type,
@@ -214,7 +218,7 @@ const Dashboard = () => {
         iconName: getIconNameForType(activity.type),
         color: getActivityColor(activity.type),
       }));
-      
+
       setRecentActivity(parsedActivities);
     } catch (error) {
       console.error("Error fetching recent activity:", error);
@@ -224,6 +228,7 @@ const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
+      setLoading(true);
       setError("");
       const response = await axios.get("/dashboard");
 
@@ -265,16 +270,17 @@ const Dashboard = () => {
 
   const fetchTeacherCourses = async () => {
     try {
-      console.log("Fetching teacher courses...");
       const response = await axios.get("/courses/teacher-courses");
-      console.log("Teacher courses response:", response.data);
 
       // Handle both response formats
       if (response.data && response.data.success !== false) {
         const courses = response.data.data || response.data || [];
         setMyCourses(Array.isArray(courses) ? courses : []);
       } else {
-        console.warn("fetchTeacherCourses: response indicated failure", response.data);
+        console.warn(
+          "fetchTeacherCourses: response indicated failure",
+          response.data,
+        );
         // If API returned a message, show it but don't treat as fatal error
         setMyCourses(response.data?.data || []);
       }
@@ -287,7 +293,7 @@ const Dashboard = () => {
       // Show a helpful message to the user when the request fails
       showCustomPopup(
         "Unable to load your courses. Please check your connection or contact the administrator.",
-        "error"
+        "error",
       );
     }
   };
@@ -334,41 +340,61 @@ const Dashboard = () => {
   const handleAddStudent = async (e) => {
     e.preventDefault();
 
+    const cleanedStudent = {
+      ...newStudent,
+      name: newStudent.name.trim(),
+      email: newStudent.email.trim().toLowerCase(),
+      password: newStudent.password,
+      grade: newStudent.grade.trim(),
+      dateOfBirth: newStudent.dateOfBirth,
+      parentName: newStudent.parentName.trim(),
+      parentContact: newStudent.parentContact.trim(),
+      emergencyContact: newStudent.emergencyContact.trim(),
+      course: newStudent.course.trim(),
+      department: newStudent.department.trim(),
+      address: {
+        street: newStudent.address.street.trim(),
+        city: newStudent.address.city.trim(),
+        state: newStudent.address.state.trim(),
+        zipCode: newStudent.address.zipCode.trim(),
+      },
+    };
+
     if (
-      !newStudent.name ||
-      !newStudent.email ||
-      !newStudent.password ||
-      !newStudent.grade ||
-      !newStudent.parentName ||
-      !newStudent.parentContact
+      !cleanedStudent.name ||
+      !cleanedStudent.email ||
+      !cleanedStudent.password ||
+      !cleanedStudent.grade ||
+      !cleanedStudent.parentName ||
+      !cleanedStudent.parentContact
     ) {
       showCustomPopup(
         "Please fill all required fields (marked with *)",
-        "error"
+        "error",
       );
       return;
     }
 
-    if (newStudent.password.length < 6) {
+    if (cleanedStudent.password.length < 6) {
       showCustomPopup("Password must be at least 6 characters long", "error");
       return;
     }
 
     try {
       const studentData = {
-        name: newStudent.name,
-        email: newStudent.email,
-        password: newStudent.password,
-        grade: newStudent.grade,
+        name: cleanedStudent.name,
+        email: cleanedStudent.email,
+        password: cleanedStudent.password,
+        grade: cleanedStudent.grade,
         dateOfBirth:
-          newStudent.dateOfBirth || new Date().toISOString().split("T")[0],
-        parentName: newStudent.parentName,
-        parentContact: newStudent.parentContact,
+          cleanedStudent.dateOfBirth || new Date().toISOString().split("T")[0],
+        parentName: cleanedStudent.parentName,
+        parentContact: cleanedStudent.parentContact,
         emergencyContact:
-          newStudent.emergencyContact || newStudent.parentContact,
-        course: newStudent.course,
-        department: newStudent.department,
-        address: newStudent.address,
+          cleanedStudent.emergencyContact || cleanedStudent.parentContact,
+        course: cleanedStudent.course,
+        department: cleanedStudent.department,
+        address: cleanedStudent.address,
       };
 
       const response = await axios.post("/students/register", studentData);
@@ -391,7 +417,7 @@ const Dashboard = () => {
         addActivity(
           "student_added",
           `Added new student: ${newStudent.name}`,
-          newStudent.name
+          newStudent.name,
         );
 
         await Promise.all([fetchStudents(), fetchDashboardData()]);
@@ -404,8 +430,8 @@ const Dashboard = () => {
       ) {
         const validationError = error.response.data.errors[0];
         showCustomPopup(
-          `Validation Error: ${validationError.msg} (field: ${validationError.param})`,
-          "error"
+          `Validation Error: ${validationError.msg} (field: ${validationError.path || validationError.param || "unknown"})`,
+          "error",
         );
       } else {
         const errorMessage =
@@ -434,7 +460,7 @@ const Dashboard = () => {
       addActivity(
         "teacher_added",
         `Added new teacher: ${newTeacher.name}`,
-        newTeacher.name
+        newTeacher.name,
       );
 
       await Promise.all([fetchTeachers(), fetchDashboardData()]);
@@ -507,8 +533,9 @@ const Dashboard = () => {
           </p>
           {change && (
             <p
-              className={`text-sm ${change > 0 ? "text-green-600" : "text-red-600"
-                } mt-1`}
+              className={`text-sm ${
+                change > 0 ? "text-green-600" : "text-red-600"
+              } mt-1`}
             >
               {change > 0 ? "+" : ""}
               {change}% from last month
@@ -640,25 +667,53 @@ const Dashboard = () => {
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                 <BarChart3 className="inline" /> Enrollment Growth
               </h2>
-              <span className="text-xs text-gray-400 dark:text-gray-500">Last 12 months</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500">
+                Last 12 months
+              </span>
             </div>
-            <div style={{ width: "100%", height: 300, minHeight: 300, minWidth: 0 }}>
+            <div
+              style={{
+                width: "100%",
+                height: 300,
+                minHeight: 300,
+                minWidth: 0,
+              }}
+            >
               {enrollmentTrend.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm">
                   No enrollment data yet
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height={300} minHeight={300}>
-                  <BarChart data={enrollmentTrend} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <BarChart
+                    data={enrollmentTrend}
+                    margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                    <XAxis dataKey="name" stroke="#8884d8" tick={{ fontSize: 12 }} />
-                    <YAxis stroke="#8884d8" allowDecimals={false} tick={{ fontSize: 12 }} />
+                    <XAxis
+                      dataKey="name"
+                      stroke="#8884d8"
+                      tick={{ fontSize: 12 }}
+                    />
+                    <YAxis
+                      stroke="#8884d8"
+                      allowDecimals={false}
+                      tick={{ fontSize: 12 }}
+                    />
                     <Tooltip
                       cursor={{ fill: "rgba(59,130,246,0.05)" }}
-                      contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
+                      contentStyle={{
+                        borderRadius: "8px",
+                        border: "none",
+                        boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+                      }}
                       formatter={(value) => [`${value} students`, "Enrolled"]}
                     />
-                    <Bar dataKey="students" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                    <Bar
+                      dataKey="students"
+                      fill="#3B82F6"
+                      radius={[4, 4, 0, 0]}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -1024,21 +1079,7 @@ const Dashboard = () => {
   };
 
   if (loading) {
-    return (
-      <div className="space-y-6 font-poppins">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Dashboard
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Loading dashboard data...
-          </p>
-        </div>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
-      </div>
-    );
+    return <SkeletonLoading />;
   }
 
   if (error) {

@@ -76,7 +76,7 @@ const studentSchema = new mongoose.Schema(
 );
 
 // BETTER Auto-generate student ID - More reliable version
-studentSchema.pre("save", async function (next) {
+studentSchema.pre("validate", async function (next) {
   if (this.isNew && !this.studentId) {
     try {
       // Find the highest student ID to avoid race conditions

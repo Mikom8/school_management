@@ -1,4 +1,5 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const Grade = require("../models/Grade");
 const Course = require("../models/Course");
 const Student = require("../models/Student");
@@ -24,8 +25,12 @@ router.get("/my-grades", auth, authorize("student"), async (req, res) => {
     }
 
     const grades = await Grade.find({ student: student._id })
-      .populate("course", "name code credits")
-      .populate("teacher", "name")
+      .populate({
+        path: "course",
+        select: "name code credits",
+        populate: { path: "teacher", select: "name" },
+      })
+      .populate("gradedBy", "name")
       .sort({ semester: -1, createdAt: -1 });
 
     // Calculate GPA
@@ -44,15 +49,16 @@ router.get("/my-grades", auth, authorize("student"), async (req, res) => {
         gpa,
         totalCredits: grades.reduce(
           (sum, grade) => sum + (grade.course?.credits || 0),
-          0
+          0,
         ),
       },
     });
   } catch (error) {
     console.error("Get my grades error:", error);
+    console.error(error.stack);
     res.status(500).json({
       success: false,
-      message: "Error fetching grades",
+      message: error.message || "Error fetching grades",
     });
   }
 });
@@ -66,12 +72,27 @@ router.get("/teacher-grades", auth, authorize("teacher"), async (req, res) => {
 
     // Get courses taught by this teacher
     const courses = await Course.find({ teacher: req.user._id });
+    const teacherCourseIds = courses.map((c) => c._id.toString());
 
     let gradesQuery = {
       course: { $in: courses.map((c) => c._id) },
     };
 
     if (courseId) {
+      if (!mongoose.Types.ObjectId.isValid(courseId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid course ID",
+        });
+      }
+
+      if (!teacherCourseIds.includes(courseId)) {
+        return res.status(403).json({
+          success: false,
+          message: "You are not authorized to view grades for this course",
+        });
+      }
+
       gradesQuery.course = courseId;
     }
     if (semester) {
@@ -79,14 +100,21 @@ router.get("/teacher-grades", auth, authorize("teacher"), async (req, res) => {
     }
 
     const grades = await Grade.find(gradesQuery)
-      .populate("student")
-      .populate("student.user", "name email")
+      .populate({
+        path: "student",
+        populate: {
+          path: "user",
+          select: "name email",
+        },
+      })
       .populate("course", "name code")
       .sort({ "student.user.name": 1, semester: -1 });
 
     // Group by course and student for easier display
     const groupedGrades = {};
     grades.forEach((grade) => {
+      if (!grade.course || !grade.student) return;
+
       const courseKey = grade.course._id.toString();
       if (!groupedGrades[courseKey]) {
         groupedGrades[courseKey] = {
@@ -96,7 +124,7 @@ router.get("/teacher-grades", auth, authorize("teacher"), async (req, res) => {
       }
 
       const studentEntry = groupedGrades[courseKey].students.find(
-        (s) => s.student._id.toString() === grade.student._id.toString()
+        (s) => s.student._id.toString() === grade.student._id.toString(),
       );
 
       if (!studentEntry) {
@@ -120,9 +148,10 @@ router.get("/teacher-grades", auth, authorize("teacher"), async (req, res) => {
     });
   } catch (error) {
     console.error("Get teacher grades error:", error);
+    console.error(error.stack);
     res.status(500).json({
       success: false,
-      message: "Error fetching teacher grades",
+      message: error.message || "Error fetching teacher grades",
     });
   }
 });
@@ -176,7 +205,8 @@ router.post(
       // Check if teacher teaches this course
       if (
         req.user.role === "teacher" &&
-        course.teacher.toString() !== req.user._id.toString()
+        (!course.teacher ||
+          course.teacher.toString() !== req.user._id.toString())
       ) {
         return res.status(403).json({
           success: false,
@@ -202,7 +232,7 @@ router.post(
             gradedBy: req.user._id,
             gradedAt: new Date(),
           },
-          { new: true }
+          { new: true },
         );
       } else {
         // Create new grade
@@ -217,8 +247,13 @@ router.post(
       }
 
       await result.populate("course", "name code credits");
-      await result.populate("student");
-      await result.populate("student.user", "name");
+      await result.populate({
+        path: "student",
+        populate: {
+          path: "user",
+          select: "name",
+        },
+      });
 
       res.json({
         success: true,
@@ -226,12 +261,13 @@ router.post(
       });
     } catch (error) {
       console.error("Grade submission error:", error);
+      console.error(error.stack);
       res.status(500).json({
         success: false,
-        message: "Error submitting grade",
+        message: error.message || "Error submitting grade",
       });
     }
-  }
+  },
 );
 
 // @desc    Get all grades (for admin)
@@ -250,8 +286,13 @@ router.get("/", auth, authorize("admin"), async (req, res) => {
     if (semester) query.semester = semester;
 
     const grades = await Grade.find(query)
-      .populate("student")
-      .populate("student.user", "name email")
+      .populate({
+        path: "student",
+        populate: {
+          path: "user",
+          select: "name email",
+        },
+      })
       .populate("course", "name code")
       .populate("gradedBy", "name")
       .limit(limit * 1)
@@ -272,9 +313,10 @@ router.get("/", auth, authorize("admin"), async (req, res) => {
     });
   } catch (error) {
     console.error("Get all grades error:", error);
+    console.error(error.stack);
     res.status(500).json({
       success: false,
-      message: "Error fetching grades",
+      message: error.message || "Error fetching grades",
     });
   }
 });
