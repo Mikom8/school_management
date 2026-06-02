@@ -665,11 +665,10 @@ const TeacherManagement = () => {
                                 return (
                                   <div
                                     key={course._id}
-                                    className={`border rounded-lg transition-colors ${
-                                      isAssignedToOther
+                                    className={`border rounded-lg transition-colors ${isAssignedToOther
                                         ? "border-red-200 dark:border-red-900 bg-red-50/30 dark:bg-red-950/10 opacity-70"
                                         : "border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
-                                    }`}
+                                      }`}
                                   >
                                     <div className="flex items-center space-x-3 p-3 cursor-pointer">
                                       <input
@@ -684,7 +683,7 @@ const TeacherManagement = () => {
                                           {course.name}
                                         </p>
                                         <p className={`text-xs truncate ${isAssignedToOther ? "text-red-500 font-semibold" : "text-gray-500 dark:text-gray-400"}`}>
-                                          Assigned Teacher: {course.teacher?.name || "None"}
+                                          Assigned Teacher: <b>{course.teacher?.name || "None"}</b>
                                         </p>
                                       </div>
                                     </div>
@@ -857,11 +856,10 @@ const TeacherManagement = () => {
                                 return (
                                   <div
                                     key={course._id}
-                                    className={`border rounded-lg transition-colors ${
-                                      isAssignedToOther
+                                    className={`border rounded-lg transition-colors ${isAssignedToOther
                                         ? "border-red-200 dark:border-red-900 bg-red-50/30 dark:bg-red-950/10 opacity-70"
                                         : "border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
-                                    }`}
+                                      }`}
                                   >
                                     <div className="flex items-center space-x-3 p-3 cursor-pointer">
                                       <input
@@ -876,7 +874,7 @@ const TeacherManagement = () => {
                                           {course.name}
                                         </p>
                                         <p className={`text-xs truncate ${isAssignedToOther ? "text-red-500 font-semibold" : "text-gray-500 dark:text-gray-400"}`}>
-                                          Assigned Teacher: {course.teacher?.name || "None"}
+                                          Assigned Teacher: <b>{course.teacher?.name || "None"}</b>
                                         </p>
                                       </div>
                                     </div>
@@ -1038,7 +1036,7 @@ const TeacherManagement = () => {
                               className="mr-1 text-green-500 shrink-0"
                             />
                             <span className="text-gray-500 dark:text-gray-400 truncate">
-                              {course.name}
+                              <b>{course.name}</b>
                             </span>
                           </div>
                         ))}
