@@ -26,6 +26,7 @@ const CourseManagement = () => {
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedDeptFilter, setSelectedDeptFilter] = useState("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
   const [error, setError] = useState("");
@@ -66,8 +67,8 @@ const CourseManagement = () => {
     show: false,
     title: "",
     message: "",
-    onConfirm: () => {},
-    onCancel: () => {},
+    onConfirm: () => { },
+    onCancel: () => { },
   });
 
   // Department modal state
@@ -84,7 +85,7 @@ const CourseManagement = () => {
     title,
     message,
     onConfirm,
-    onCancel = () => {},
+    onCancel = () => { },
   ) => {
     setConfirmDialog({
       show: true,
@@ -494,10 +495,10 @@ const CourseManagement = () => {
           prev.map((course) =>
             course._id === id
               ? {
-                  ...course,
-                  ...courseData,
-                  teacher: course.teacher,
-                }
+                ...course,
+                ...courseData,
+                teacher: course.teacher,
+              }
               : course,
           ),
         );
@@ -713,13 +714,19 @@ const CourseManagement = () => {
     return `${dayStr} • ${timeStr}`;
   };
 
-  // Filter courses based on search - ADDED THIS FUNCTION
+  // Filter courses based on search and department
   const filteredCourses = courses.filter((course) => {
     const matchesSearch =
       course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       course.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (course.description || "").toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
+
+    const courseDeptId = course.department?._id || course.department || "unassigned";
+    const matchesDept =
+      selectedDeptFilter === "all" ||
+      courseDeptId === selectedDeptFilter;
+
+    return matchesSearch && matchesDept;
   });
 
   const dayOptions = [
@@ -740,11 +747,10 @@ const CourseManagement = () => {
       {/* Notification Popup */}
       {notification.show && (
         <div
-          className={`fixed top-4 right-4 z-50 max-w-sm ${
-            notification.type === "error"
-              ? "bg-red-100 border-red-400 text-red-700"
-              : "bg-green-100 border-green-400 text-green-700"
-          } border px-4 py-3 rounded-lg shadow-lg flex items-start space-x-3 animate-in slide-in-from-right-full duration-500`}
+          className={`fixed top-4 right-4 z-50 max-w-sm ${notification.type === "error"
+            ? "bg-red-100 border-red-400 text-red-700"
+            : "bg-green-100 border-green-400 text-green-700"
+            } border px-4 py-3 rounded-lg shadow-lg flex items-start space-x-3 animate-in slide-in-from-right-full duration-500`}
         >
           {notification.type === "error" ? (
             <AlertCircle className="shrink-0 mt-0.5" size={20} />
@@ -791,8 +797,8 @@ const CourseManagement = () => {
                     show: false,
                     title: "",
                     message: "",
-                    onConfirm: () => {},
-                    onCancel: () => {},
+                    onConfirm: () => { },
+                    onCancel: () => { },
                   });
                 }}
                 className="btn btn-secondary"
@@ -806,8 +812,8 @@ const CourseManagement = () => {
                     show: false,
                     title: "",
                     message: "",
-                    onConfirm: () => {},
-                    onCancel: () => {},
+                    onConfirm: () => { },
+                    onCancel: () => { },
                   });
                 }}
                 className="btn btn-danger"
@@ -833,451 +839,367 @@ const CourseManagement = () => {
           </button>
         </div>
       )}
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center space-y-4 sm:space-y-0">
+      {/* ── Header ── */}
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             Course Management
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Manage courses and curriculum - {courses.length} courses available
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            {courses.length} courses across{" "}
+            {Object.keys(
+              courses.reduce((acc, c) => {
+                acc[c.department?._id || c.department || "unassigned"] = true;
+                return acc;
+              }, {})
+            ).length}{" "}
+            departments
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full md:w-auto">
-          <div className="input relative grow">
-            <Search
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-              size={20}
-            />
+        <div className="flex flex-wrap gap-3 items-center">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input
               type="text"
               placeholder="Search courses..."
-              className="inpt pl-10 w-full placeholder:text-gray-400 outline-none"
+              className="pl-10 pr-4 py-2 w-64 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all duration-300 shadow-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 
-          {user?.role !== "student" && user?.role !== "teacher" && (
-            <button
-              onClick={handleCreateNew}
-              className="btn btn-primary flex items-center justify-center space-x-2 cursor-pointer"
+          <div className="relative">
+            <select
+              value={selectedDeptFilter}
+              onChange={(e) => setSelectedDeptFilter(e.target.value)}
+              className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all duration-300 shadow-sm cursor-pointer min-w-[180px]"
             >
-              <Plus size={20} />
-              <span>Create Course</span>
-            </button>
-          )}
+              <option value="all">All Departments</option>
+              {departments.map((dept) => (
+                <option key={dept._id} value={dept._id}>
+                  {dept.name}
+                </option>
+              ))}
+              <option value="unassigned">Unassigned</option>
+            </select>
+          </div>
+
           {user?.role === "admin" && (
             <>
               <button
                 onClick={() => setShowDeptModal(true)}
-                className="btn btn-secondary flex items-center justify-center space-x-2"
+                className="btn btn-secondary flex items-center space-x-2"
               >
-                <span>Create Department</span>
+                <Plus size={16} />
+                <span>Department</span>
               </button>
-
-              {showDeptModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                  <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        Create Department
-                      </h3>
-                      <button
-                        onClick={() => setShowDeptModal(false)}
-                        className="text-gray-400 hover:text-gray-600"
-                      >
-                        <X size={18} />
-                      </button>
-                    </div>
-
-                    <form
-                      onSubmit={async (e) => {
-                        e.preventDefault();
-                        if (!deptForm.name.trim()) {
-                          showNotification(
-                            "Department name is required",
-                            "error",
-                          );
-                          return;
-                        }
-
-                        setDeptSubmitting(true);
-                        try {
-                          const token = getAuthToken();
-                          const res = await fetch(
-                            getApiUrl("/courses/departments"),
-                            {
-                              method: "POST",
-                              headers: {
-                                "Content-Type": "application/json",
-                                Authorization: token ? `Bearer ${token}` : "",
-                              },
-                              body: JSON.stringify(deptForm),
-                            },
-                          );
-
-                          const text = await res.text();
-                          let json;
-                          try {
-                            json = JSON.parse(text);
-                          } catch (e) {
-                            json = { message: text };
-                          }
-
-                          if (!res.ok) {
-                            const msg =
-                              json?.message ||
-                              res.statusText ||
-                              "Failed to create department";
-                            throw new Error(msg);
-                          }
-
-                          // If server returned created dept id, preselect it for the course form
-                          const newDeptId =
-                            json?.data?._id || json?._id || null;
-                          if (newDeptId) {
-                            setFormData((prev) => ({
-                              ...prev,
-                              department: newDeptId,
-                            }));
-                          }
-
-                          await fetchDepartments();
-                          setShowDeptModal(false);
-                          setDeptForm({ name: "", code: "", description: "" });
-                          showNotification("Department created", "success");
-                        } catch (err) {
-                          console.error("Create department error:", err);
-                          showNotification(
-                            `Failed to create department: ${err.message}`,
-                            "error",
-                          );
-                        } finally {
-                          setDeptSubmitting(false);
-                        }
-                      }}
-                    >
-                      <div className="space-y-3">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Name *
-                          </label>
-                          <input
-                            name="name"
-                            value={deptForm.name}
-                            onChange={(e) =>
-                              setDeptForm((p) => ({
-                                ...p,
-                                name: e.target.value,
-                              }))
-                            }
-                            className="input w-full"
-                            required
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Code
-                          </label>
-                          <input
-                            name="code"
-                            value={deptForm.code}
-                            onChange={(e) =>
-                              setDeptForm((p) => ({
-                                ...p,
-                                code: e.target.value,
-                              }))
-                            }
-                            className="input w-full"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Description
-                          </label>
-                          <textarea
-                            name="description"
-                            value={deptForm.description}
-                            onChange={(e) =>
-                              setDeptForm((p) => ({
-                                ...p,
-                                description: e.target.value,
-                              }))
-                            }
-                            className="input w-full"
-                            rows={3}
-                          />
-                        </div>
-
-                        <div className="flex justify-end space-x-2">
-                          <button
-                            type="button"
-                            onClick={() => setShowDeptModal(false)}
-                            className="btn btn-secondary"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="submit"
-                            className="btn btn-primary"
-                            disabled={deptSubmitting}
-                          >
-                            {deptSubmitting ? "Saving..." : "Create"}
-                          </button>
-                        </div>
-                      </div>
-                    </form>
-                  </div>
-                </div>
-              )}
+              <button
+                onClick={handleCreateNew}
+                className="btn btn-primary flex items-center space-x-2 cursor-pointer"
+              >
+                <Plus size={18} />
+                <span>Create Course</span>
+              </button>
             </>
+          )}
+
+          {user?.role === "teacher" && (
+            <button
+              onClick={handleCreateNew}
+              className="btn btn-primary flex items-center space-x-2 cursor-pointer"
+            >
+              <Plus size={18} />
+              <span>Create Course</span>
+            </button>
           )}
         </div>
       </div>
-      {/* Courses Grid */}
-      <div className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredCourses.map((course) => {
-          const assignedTeacher = getAssignedTeacher(course);
-          const displayCode = course.code.split("-")[0];
-          const studentCount = getStudentCountForCourse(course);
 
-          return (
-            <div
-              key={course._id}
-              className="card group hover:shadow-lg transition-all duration-200 hover:scale-[1.02]"
-            >
-              {/* Header with Course Info and Enrollment Count */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white transition-colors">
-                    {course.name}
-                  </h3>
-                  <p className="text-primary-600 dark:text-primary-400 font-medium">
-                    {displayCode}
-                  </p>
-                  {course.description && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
-                      {course.description}
-                    </p>
-                  )}
-                </div>
-
-                {/* Enrollment Count Badge - Right Side */}
-                <div className="flex flex-col items-end space-y-2 ml-2 shrink-0">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
-                    {course.credits} credits
-                  </span>
-
-                  {user?.role === "admin" && (
-                    <div className="inline-flex flex-col items-center px-3 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
-                      <div className="flex items-center">
-                        <Users size={12} className="mr-1" />
-                        <span className="font-bold">
-                          {studentCount} enrolled
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-3 mb-4">
-                {/* Assigned Teacher Section */}
-                <div className="flex items-start text-sm text-gray-600 dark:text-gray-400">
-                  <User size={16} className="mr-2 shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <span className="font-medium">Assigned Teacher: </span>
-                    {assignedTeacher ? (
-                      <div className="mt-1">
-                        <div className="flex items-center text-xs bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded">
-                          <CheckCircle
-                            size={12}
-                            className="mr-1 text-green-500 shrink-0"
-                          />
-                          <span className="text-gray-700 dark:text-gray-300">
-                            {assignedTeacher.name}
-                          </span>
-                        </div>
-                      </div>
-                    ) : (
-                      <span className="text-gray-500 italic">
-                        No teacher assigned
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                  <Clock size={16} className="mr-2 shrink-0" />
-                  <span className="flex-1">{formatSchedule(course)}</span>
-                </div>
-
-                {course.schedule?.room && (
-                  <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                    <MapPin size={16} className="mr-2 shrink-0" />
-                    <span>Room: {course.schedule.room}</span>
-                  </div>
-                )}
-              </div>
-
-              {user?.role !== "student" &&
-                (user?.role === "admin" ||
-                  (user?.role === "teacher" &&
-                    assignedTeacher?._id === user._id)) && (
-                  <div className="flex justify-between pt-4 border-t border-gray-200 dark:border-gray-600">
-                    <button
-                      onClick={() => handleEdit(course)}
-                      className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium cursor-pointer"
-                    >
-                      <Edit size={16} />
-                      <span>Edit</span>
-                    </button>
-                    <button
-                      onClick={() => deleteCourse(course._id)}
-                      disabled={deletingId === course._id}
-                      className="flex items-center space-x-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      {deletingId === course._id ? (
-                        <Loader size={16} className="animate-spin" />
-                      ) : (
-                        <Trash2 size={16} />
-                      )}
-                      <span>Delete</span>
-                    </button>
-                  </div>
-                )}
-            </div>
-          );
-        })}
-      </div>
-      {/* Empty State */}
-      {filteredCourses.length === 0 && (
-        <div className="text-center py-12">
-          <BookOpen className="mx-auto text-gray-400" size={48} />
-          <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">
-            No courses found
-          </h3>
-          <p className="mt-2 text-gray-500 dark:text-gray-400">
+      {/* ── Department-grouped course list ── */}
+      {filteredCourses.length === 0 ? (
+        <div className="text-center py-20">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 mb-4">
+            <BookOpen className="text-gray-400" size={36} />
+          </div>
+          <h3 className="mt-2 text-lg font-semibold text-gray-900 dark:text-white">No courses found</h3>
+          <p className="mt-1 text-gray-500 dark:text-gray-400">
             {user?.role === "student"
-              ? "You are not enrolled in any courses yet. Contact your admin to get enrolled."
+              ? "You are not enrolled in any courses yet."
               : courses.length === 0
                 ? "Create your first course to get started."
                 : "Try adjusting your search."}
           </p>
         </div>
+      ) : (
+        <div className="space-y-10">
+          {Object.values(
+            filteredCourses.reduce((acc, course) => {
+              const deptId = course.department?._id || course.department || "unassigned";
+              const deptName = course.department?.name || "Unassigned";
+              const deptCode = course.department?.code || "";
+              if (!acc[deptId]) {
+                acc[deptId] = { id: deptId, name: deptName, code: deptCode, courses: [] };
+              }
+              acc[deptId].courses.push(course);
+              return acc;
+            }, {})
+          ).map((dept, deptIdx) => {
+            const colors = [
+              { bg: "from-blue-500 to-indigo-600", light: "bg-white dark:bg-gray-900 border-blue-200 dark:border-blue-800", badge: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300", top: "from-blue-500 to-indigo-600" },
+              { bg: "from-emerald-500 to-teal-600", light: "bg-white dark:bg-gray-900 border-emerald-200 dark:border-emerald-800", badge: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300", top: "from-emerald-500 to-teal-600" },
+              { bg: "from-violet-500 to-purple-600", light: "bg-white dark:bg-gray-900 border-violet-200 dark:border-violet-800", badge: "bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300", top: "from-violet-500 to-purple-600" },
+              { bg: "from-orange-500 to-amber-600", light: "bg-white dark:bg-gray-900 border-orange-200 dark:border-orange-800", badge: "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300", top: "from-orange-500 to-amber-600" },
+              { bg: "from-rose-500 to-pink-600", light: "bg-white dark:bg-gray-900 border-rose-200 dark:border-rose-800", badge: "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300", top: "from-rose-500 to-pink-600" },
+              { bg: "from-cyan-500 to-sky-600", light: "bg-white dark:bg-gray-900 border-cyan-200 dark:border-cyan-800", badge: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300", top: "from-cyan-500 to-sky-600" },
+            ];
+            const color = colors[deptIdx % colors.length];
+
+            return (
+              <section key={dept.id}>
+                {/* Department Header */}
+                <div className="flex items-center gap-4 mb-5">
+                  <div className={`h-10 w-10 rounded-xl bg-gradient-to-br ${color.bg} flex items-center justify-center shadow-md shrink-0`}>
+                    <BookOpen size={18} className="text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white truncate">
+                      {dept.name}
+                    </h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {dept.courses.length} course{dept.courses.length !== 1 ? "s" : ""}
+                      {dept.code ? ` · ${dept.code}` : ""}
+                    </p>
+                  </div>
+                  <div className="hidden sm:block h-px flex-1 bg-gradient-to-r from-gray-200 dark:from-gray-700 to-transparent" />
+                </div>
+
+                {/* Courses grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                  {dept.courses.map((course) => {
+                    const assignedTeacher = getAssignedTeacher(course);
+                    const displayCode = course.code.split("-")[0];
+                    const studentCount = getStudentCountForCourse(course);
+
+                    return (
+                      <div
+                        key={course._id}
+                        className={`relative rounded-2xl border overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group ${color.light}`}
+                      >
+                        {/* Top accent bar */}
+                        <div className={`h-1.5 w-full bg-gradient-to-r ${color.top}`} />
+
+                        <div className="p-5">
+                          {/* Course header */}
+                          <div className="flex items-start justify-between gap-3 mb-3">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-bold text-gray-900 dark:text-white text-base leading-snug truncate">
+                                {course.name}
+                              </h3>
+                              <span className={`inline-block mt-1 text-xs font-semibold px-2 py-0.5 rounded-full ${color.badge}`}>
+                                {displayCode}
+                              </span>
+                            </div>
+
+                            <div className="flex flex-col items-end gap-1.5 shrink-0">
+                              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 whitespace-nowrap">
+                                {course.credits} credits
+                              </span>
+                              {user?.role === "admin" && (
+                                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 flex items-center gap-1 whitespace-nowrap">
+                                  <Users size={10} />
+                                  {studentCount} enrolled
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Description */}
+                          {course.description && (
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">
+                              {course.description}
+                            </p>
+                          )}
+
+                          {/* Meta info */}
+                          <div className="space-y-2 text-xs text-gray-600 dark:text-gray-400">
+                            {(course.year || course.semester) && (
+                              <div className="flex items-center gap-2">
+                                {course.year && (
+                                  <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 font-medium">
+                                    {course.year}
+                                  </span>
+                                )}
+                                {course.semester && (
+                                  <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 font-medium">
+                                    {course.semester}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            <div className="flex items-center gap-2">
+                              <User size={13} className="text-gray-400 shrink-0" />
+                              {assignedTeacher ? (
+                                <span className="flex items-center gap-1 truncate">
+                                  <CheckCircle size={11} className="text-green-500 shrink-0" />
+                                  <span className="truncate font-medium text-gray-700 dark:text-gray-300">
+                                    {assignedTeacher.name}
+                                  </span>
+                                </span>
+                              ) : (
+                                <span className="italic text-gray-400">No teacher assigned</span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <Clock size={13} className="text-gray-400 shrink-0" />
+                              <span className="truncate">{formatSchedule(course)}</span>
+                            </div>
+
+                            {course.schedule?.room && (
+                              <div className="flex items-center gap-2">
+                                <MapPin size={13} className="text-gray-400 shrink-0" />
+                                <span>Room {course.schedule.room}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Actions */}
+                          {user?.role !== "student" &&
+                            (user?.role === "admin" ||
+                              (user?.role === "teacher" && assignedTeacher?._id === user._id)) && (
+                              <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-4">
+                                <button
+                                  onClick={() => handleEdit(course)}
+                                  className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors cursor-pointer"
+                                >
+                                  <Edit size={13} />
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => deleteCourse(course._id)}
+                                  disabled={deletingId === course._id}
+                                  className="flex items-center gap-1.5 text-xs font-semibold text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                  {deletingId === course._id ? (
+                                    <Loader size={13} className="animate-spin" />
+                                  ) : (
+                                    <Trash2 size={13} />
+                                  )}
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
+        </div>
       )}
-      {/* Create/Edit Course Modal */}
+
+      {/* ── Create Department Modal ── */}
+      {showDeptModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Create Department</h3>
+              <button onClick={() => setShowDeptModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={18} />
+              </button>
+            </div>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!deptForm.name.trim()) { showNotification("Department name is required", "error"); return; }
+                setDeptSubmitting(true);
+                try {
+                  const token = getAuthToken();
+                  const res = await fetch(getApiUrl("/courses/departments"), {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", Authorization: token ? `Bearer ${token}` : "" },
+                    body: JSON.stringify(deptForm),
+                  });
+                  const text = await res.text();
+                  let json; try { json = JSON.parse(text); } catch (e) { json = { message: text }; }
+                  if (!res.ok) throw new Error(json?.message || res.statusText || "Failed to create department");
+                  const newDeptId = json?.data?._id || json?._id || null;
+                  if (newDeptId) setFormData((prev) => ({ ...prev, department: newDeptId }));
+                  await fetchDepartments();
+                  setShowDeptModal(false);
+                  setDeptForm({ name: "", code: "", description: "" });
+                  showNotification("Department created", "success");
+                } catch (err) {
+                  showNotification(`Failed to create department: ${err.message}`, "error");
+                } finally { setDeptSubmitting(false); }
+              }}
+            >
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name *</label>
+                  <input name="name" value={deptForm.name} onChange={(e) => setDeptForm((p) => ({ ...p, name: e.target.value }))} className="input w-full" required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Code</label>
+                  <input name="code" value={deptForm.code} onChange={(e) => setDeptForm((p) => ({ ...p, code: e.target.value }))} className="input w-full" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                  <textarea name="description" value={deptForm.description} onChange={(e) => setDeptForm((p) => ({ ...p, description: e.target.value }))} className="input w-full" rows={3} />
+                </div>
+                <div className="flex justify-end space-x-2 pt-2">
+                  <button type="button" onClick={() => setShowDeptModal(false)} className="btn btn-secondary">Cancel</button>
+                  <button type="submit" className="btn btn-primary" disabled={deptSubmitting}>{deptSubmitting ? "Saving..." : "Create"}</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Create / Edit Course Modal ── */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4 p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                 {editingCourse ? "Edit Course" : "Create New Course"}
               </h2>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              >
+              <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                 <X size={24} />
               </button>
             </div>
+
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                           
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                               
-                <div>
-                                   
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Main Course *                  
-                  </label>
-                                   
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    className="input w-full"
-                    placeholder="e.g., Computer Science"
-                    required
-                  />
-                                 
-                </div>
-                               
-                <div>
-                                   
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Course Code *                  
-                  </label>
-                                   
-                  <input
-                    type="text"
-                    name="code"
-                    value={formData.code}
-                    onChange={handleInputChange}
-                    className="input w-full uppercase"
-                    placeholder="e.g., COMP01"
-                    required
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Same base code for all subcourses under this main course
-                  </p>
-                </div>
-              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Credits *
-                  </label>
-                  <input
-                    type="number"
-                    name="credits"
-                    value={formData.credits}
-                    onChange={handleInputChange}
-                    className="input w-full"
-                    min="1"
-                    max="100"
-                    required
-                  />
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Course Name *</label>
+                  <input type="text" name="name" value={formData.name} onChange={handleInputChange} className="input w-full" placeholder="e.g., Computer Science" required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Department *
-                  </label>
-                  <select
-                    name="department"
-                    value={formData.department || ""}
-                    onChange={handleInputChange}
-                    className="input w-full"
-                    required
-                  >
-                    <option value="">Select Department</option>
-                    {departments.map((d) => (
-                      <option key={d._id} value={d._id}>
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Course Code *</label>
+                  <input type="text" name="code" value={formData.code} onChange={handleInputChange} className="input w-full uppercase" placeholder="e.g., COMP01" required />
                 </div>
               </div>
 
-              {/* Year & Semester */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
+                <textarea name="description" value={formData.description} onChange={handleInputChange} className="input w-full" rows={2} placeholder="Optional course description" />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Year *
-                  </label>
-                  <select
-                    name="year"
-                    value={formData.year}
-                    onChange={handleInputChange}
-                    className="input w-full"
-                    required
-                  >
-                    <option value="">Select Year</option>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Credits *</label>
+                  <input type="number" name="credits" value={formData.credits} onChange={handleInputChange} className="input w-full" min="1" max="100" required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Year *</label>
+                  <select name="year" value={formData.year} onChange={handleInputChange} className="input w-full" required>
+                    <option value="" selected disabled>Select Year</option>
                     <option value="Remedial">Remedial</option>
                     <option value="1st Year">1st Year</option>
                     <option value="2nd Year">2nd Year</option>
@@ -1287,135 +1209,71 @@ const CourseManagement = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Semester *
-                  </label>
-                  <select
-                    name="semester"
-                    value={formData.semester}
-                    onChange={handleInputChange}
-                    className="input w-full"
-                    required
-                  >
-                    <option value="">Select Semester</option>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Semester *</label>
+                  <select name="semester" value={formData.semester} onChange={handleInputChange} className="input w-full" required>
+                    <option value="" selected disabled>Select Semester</option>
                     <option value="1st Semester">1st Semester</option>
                     <option value="2nd Semester">2nd Semester</option>
                   </select>
                 </div>
               </div>
 
-              {/* Schedule Section */}
-              <div className="border-t border-gray-600 pt-6">
-                               
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-                                    Schedule                
-                </h3>
-                               
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Department *</label>
+                <select name="department" value={formData.department || ""} onChange={handleInputChange} className="input w-full" required>
+                  <option value="" selected disabled>Select Department</option>
+                  {departments.map((d) => (
+                    <option key={d._id} value={d._id}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Schedule */}
+              <div className="border-t border-gray-200 dark:border-gray-600 pt-6">
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">Schedule</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                   
                   <div>
-                                       
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Days *                    
-                    </label>
-                                       
-                    <div className="space-y-2">
-                                           
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Days *</label>
+                    <div className="flex flex-wrap gap-2">
                       {dayOptions.map((day) => (
-                        <label key={day} className="flex items-center">
-                                                   
-                          <input
-                            type="checkbox"
-                            checked={formData.schedule.days.includes(day)}
-                            onChange={() => handleDayToggle(day)}
-                            className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                          />
-                                                   
-                          <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                                                        {day}                   
-                                 
-                          </span>
-                                                 
+                        <label
+                          key={day}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer border transition-all ${formData.schedule.days.includes(day)
+                            ? "bg-blue-600 text-white border-blue-600"
+                            : "bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-400"
+                            }`}
+                        >
+                          <input type="checkbox" checked={formData.schedule.days.includes(day)} onChange={() => handleDayToggle(day)} className="sr-only" />
+                          {day.slice(0, 3)}
                         </label>
                       ))}
-                                         
                     </div>
-                                   
                   </div>
-                                   
+
                   <div className="space-y-4">
-                                       
-                    <div>
-                                           
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Start Time                      
-                      </label>
-                                           
-                      <input
-                        type="time"
-                        name="schedule.startTime"
-                        value={formData.schedule.startTime}
-                        onChange={handleInputChange}
-                        className="input w-full"
-                      />
-                                         
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Start</label>
+                        <input type="time" name="schedule.startTime" value={formData.schedule.startTime} onChange={handleInputChange} className="input w-full" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">End</label>
+                        <input type="time" name="schedule.endTime" value={formData.schedule.endTime} onChange={handleInputChange} className="input w-full" />
+                      </div>
                     </div>
-                                       
                     <div>
-                                           
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                End Time                      
-                      </label>
-                                           
-                      <input
-                        type="time"
-                        name="schedule.endTime"
-                        value={formData.schedule.endTime}
-                        onChange={handleInputChange}
-                        className="input w-full"
-                      />
-                                         
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Room</label>
+                      <input type="text" name="schedule.room" value={formData.schedule.room} onChange={handleInputChange} className="input w-full" placeholder="e.g., Room 101" />
                     </div>
-                                       
-                    <div>
-                                           
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Room                      
-                      </label>
-                                           
-                      <input
-                        type="text"
-                        name="schedule.room"
-                        value={formData.schedule.room}
-                        onChange={handleInputChange}
-                        className="input w-full"
-                        placeholder="e.g., Room 101"
-                      />
-                                         
-                    </div>
-                                     
                   </div>
-                                 
                 </div>
-                             
               </div>
-                           
-              <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
-                               
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  disabled={isSubmitting}
-                  className="btn btn-secondary cursor-pointer disabled:opacity-50"
-                >
-                                    Cancel                
+
+              <div className="flex justify-end space-x-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+                <button type="button" onClick={() => setShowCreateModal(false)} disabled={isSubmitting} className="btn btn-secondary cursor-pointer disabled:opacity-50">
+                  Cancel
                 </button>
-                               
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="btn btn-primary flex items-center space-x-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                >
+                <button type="submit" disabled={isSubmitting} className="btn btn-primary flex items-center space-x-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
                   {isSubmitting ? (
                     <>
                       <Loader size={16} className="animate-spin" />
@@ -1427,18 +1285,12 @@ const CourseManagement = () => {
                       <span>{editingCourse ? "Update" : "Create"} Course</span>
                     </>
                   )}
-                           
                 </button>
-                             
               </div>
-                         
             </form>
-                     
           </div>
-                 
         </div>
       )}
-         
     </div>
   );
 };

@@ -228,27 +228,24 @@ const TeacherManagement = () => {
       // Fallback to sample data
       const sampleCourses = [
         {
-          _id: "main_computer_science",
+          _id: "1",
           name: "Computer Science",
-          baseCode: "COMP01",
-          subcourses: [
-            {
-              _id: "1",
-              name: "Computer Science",
-              code: "COMP01",
-              description: "Introduction to Programming",
-              credits: 4,
-              teacher: null,
-              teacherName: null,
-              schedule: {
-                days: ["Monday", "Wednesday", "Friday"],
-                startTime: "09:00",
-                endTime: "10:30",
-                room: "CS Building 101",
-              },
-              maxStudents: 40,
-            },
-          ],
+          code: "CS01",
+          description: "Introduction to Programming",
+          credits: 4,
+          teacher: null,
+          teacherName: null,
+          schedule: {
+            days: ["Monday", "Wednesday", "Friday"],
+            startTime: "09:00",
+            endTime: "10:30",
+            room: "CS Building 101",
+          },
+          maxStudents: 40,
+          department: {
+            _id: "dept_cs",
+            name: "Computer Science"
+          }
         },
       ];
       setCourses(sampleCourses);
@@ -278,10 +275,8 @@ const TeacherManagement = () => {
           const token = getAuthToken();
 
           // First, remove this teacher from all courses they teach
-          const teacherCourses = courses.flatMap((mainCourse) =>
-            mainCourse.subcourses.filter(
-              (subcourse) => subcourse.teacher === teacher._id,
-            ),
+          const teacherCourses = courses.filter(
+            (course) => course.teacher === teacher._id || course.teacher?._id === teacher._id,
           );
 
           for (const course of teacherCourses) {
@@ -475,56 +470,29 @@ const TeacherManagement = () => {
   };
 
   // Course assignment functions
-  const toggleCourseAssignment = (mainCourseId, isForNewTeacher = false) => {
-    const mainCourse = courses.find((c) => c._id === mainCourseId);
-    if (!mainCourse) return;
-
+  const toggleCourseAssignment = (courseId, isForNewTeacher = false) => {
     if (isForNewTeacher) {
-      const allSubcourseIds = mainCourse.subcourses.map((sc) => sc._id);
-      const currentlyAssigned = newTeacher.assignedSubcourses.filter((id) =>
-        allSubcourseIds.includes(id),
-      ).length;
-
-      if (currentlyAssigned === allSubcourseIds.length) {
-        // Remove all subcourses
-        setNewTeacher((prev) => ({
+      setNewTeacher((prev) => {
+        const assignedCourses = prev.assignedCourses || [];
+        const isAssigned = assignedCourses.includes(courseId);
+        return {
           ...prev,
-          assignedSubcourses: prev.assignedSubcourses.filter(
-            (id) => !allSubcourseIds.includes(id),
-          ),
-        }));
-      } else {
-        // Add all subcourses
-        setNewTeacher((prev) => ({
-          ...prev,
-          assignedSubcourses: [
-            ...new Set([...prev.assignedSubcourses, ...allSubcourseIds]),
-          ],
-        }));
-      }
+          assignedCourses: isAssigned
+            ? assignedCourses.filter((id) => id !== courseId)
+            : [...assignedCourses, courseId],
+        };
+      });
     } else {
-      const allSubcourseIds = mainCourse.subcourses.map((sc) => sc._id);
-      const currentlyAssigned = editingTeacher.assignedSubcourses.filter((id) =>
-        allSubcourseIds.includes(id),
-      ).length;
-
-      if (currentlyAssigned === allSubcourseIds.length) {
-        // Remove all subcourses
-        setEditingTeacher((prev) => ({
+      setEditingTeacher((prev) => {
+        const assignedCourses = prev.assignedCourses || [];
+        const isAssigned = assignedCourses.includes(courseId);
+        return {
           ...prev,
-          assignedSubcourses: prev.assignedSubcourses.filter(
-            (id) => !allSubcourseIds.includes(id),
-          ),
-        }));
-      } else {
-        // Add all subcourses
-        setEditingTeacher((prev) => ({
-          ...prev,
-          assignedSubcourses: [
-            ...new Set([...prev.assignedSubcourses, ...allSubcourseIds]),
-          ],
-        }));
-      }
+          assignedCourses: isAssigned
+            ? assignedCourses.filter((id) => id !== courseId)
+            : [...assignedCourses, courseId],
+        };
+      });
     }
   };
 
@@ -662,24 +630,30 @@ const TeacherManagement = () => {
                             <div className="space-y-2">
                               {dept.courses.map((course) => {
                                 const isAssigned = newTeacher.assignedCourses.includes(course._id);
+                                const isAssignedToOther = course.teacher !== null && course.teacher !== undefined;
 
                                 return (
                                   <div
                                     key={course._id}
-                                    className="border border-gray-200 dark:border-gray-600 rounded-lg"
+                                    className={`border rounded-lg transition-colors ${
+                                      isAssignedToOther
+                                        ? "border-red-200 dark:border-red-900 bg-red-50/30 dark:bg-red-950/10 opacity-70"
+                                        : "border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+                                    }`}
                                   >
-                                    <div className="flex items-center space-x-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors">
+                                    <div className="flex items-center space-x-3 p-3 cursor-pointer">
                                       <input
                                         type="checkbox"
-                                        checked={isAssigned}
+                                        checked={isAssigned || isAssignedToOther}
+                                        disabled={isAssignedToOther}
                                         onChange={() => toggleCourseAssignment(course._id, true)}
-                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-55"
                                       />
                                       <div className="flex-1 min-w-0">
                                         <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                                           {course.name}
                                         </p>
-                                        <p className="text-xs text-orange-500 dark:text-orange-400 truncate">
+                                        <p className={`text-xs truncate ${isAssignedToOther ? "text-red-500 font-semibold" : "text-gray-500 dark:text-gray-400"}`}>
                                           Assigned Teacher: {course.teacher?.name || "None"}
                                         </p>
                                       </div>
@@ -844,24 +818,34 @@ const TeacherManagement = () => {
                             <div className="space-y-2">
                               {dept.courses.map((course) => {
                                 const isAssigned = editingTeacher.assignedCourses.includes(course._id);
+                                const isAssignedToOther =
+                                  course.teacher !== null &&
+                                  course.teacher !== undefined &&
+                                  course.teacher !== editingTeacher._id &&
+                                  course.teacher?._id !== editingTeacher._id;
 
                                 return (
                                   <div
                                     key={course._id}
-                                    className="border border-gray-200 dark:border-gray-600 rounded-lg"
+                                    className={`border rounded-lg transition-colors ${
+                                      isAssignedToOther
+                                        ? "border-red-200 dark:border-red-900 bg-red-50/30 dark:bg-red-950/10 opacity-70"
+                                        : "border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+                                    }`}
                                   >
-                                    <div className="flex items-center space-x-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors">
+                                    <div className="flex items-center space-x-3 p-3 cursor-pointer">
                                       <input
                                         type="checkbox"
-                                        checked={isAssigned}
+                                        checked={isAssigned || isAssignedToOther}
+                                        disabled={isAssignedToOther}
                                         onChange={() => toggleCourseAssignment(course._id, false)}
-                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-55"
                                       />
                                       <div className="flex-1 min-w-0">
                                         <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                                           {course.name}
                                         </p>
-                                        <p className="text-xs text-orange-500 dark:text-orange-400 truncate">
+                                        <p className={`text-xs truncate ${isAssignedToOther ? "text-red-500 font-semibold" : "text-gray-500 dark:text-gray-400"}`}>
                                           Assigned Teacher: {course.teacher?.name || "None"}
                                         </p>
                                       </div>
