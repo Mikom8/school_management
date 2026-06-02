@@ -102,46 +102,6 @@ const CustomPopup = ({
   );
 };
 
-// Subcourse Item Component
-const SubcourseItem = ({
-  subcourse,
-  isAssigned,
-  onToggle,
-  isParentAssigned,
-}) => {
-  return (
-    <div className="flex items-center space-x-3 p-2 ml-6 border-l-2 border-gray-200 dark:border-gray-600">
-      <input
-        type="checkbox"
-        checked={isAssigned}
-        onChange={onToggle}
-        disabled={!isParentAssigned}
-        className={`rounded border-gray-300 focus:ring-blue-500 ${
-          !isParentAssigned ? "opacity-50 cursor-not-allowed" : "text-blue-600"
-        }`}
-      />
-      <div className="flex-1 min-w-0">
-        <p
-          className={`text-sm font-medium truncate ${
-            !isParentAssigned
-              ? "text-gray-400"
-              : "text-gray-700 dark:text-gray-300"
-          }`}
-        >
-          {subcourse.description}
-        </p>
-        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-          {subcourse.code} • {subcourse.credits} credits
-        </p>
-        {subcourse.teacher && (
-          <p className="text-xs text-orange-500 truncate">
-            Currently assigned to: {subcourse.teacherName || "Another teacher"}
-          </p>
-        )}
-      </div>
-    </div>
-  );
-};
 
 const TeacherManagement = () => {
   const [teachers, setTeachers] = useState([]);
@@ -150,8 +110,15 @@ const TeacherManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState(null);
-  const [expandedCourses, setExpandedCourses] = useState({});
+  const [expandedDepartments, setExpandedDepartments] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const toggleDepartmentExpansion = (deptId) => {
+    setExpandedDepartments((prev) => ({
+      ...prev,
+      [deptId]: !prev[deptId],
+    }));
+  };
   const [deletingId, setDeletingId] = useState(null);
   const { user } = useAuth();
 
@@ -171,7 +138,6 @@ const TeacherManagement = () => {
     email: "",
     password: "",
     assignedCourses: [],
-    assignedSubcourses: [],
   });
 
   useEffect(() => {
@@ -257,36 +223,7 @@ const TeacherManagement = () => {
 
       // API now returns { success, data, pagination } — extract the array
       const courseArray = response.data?.data || response.data || [];
-      // Group courses by main course name to create subcourse structure
-      const coursesByMainCourse = {};
-      (Array.isArray(courseArray) ? courseArray : []).forEach((course) => {
-        const mainCourseName = course.name;
-        if (!coursesByMainCourse[mainCourseName]) {
-          coursesByMainCourse[mainCourseName] = {
-            _id: `main_${mainCourseName}`,
-            name: mainCourseName,
-            baseCode: course.code.split("-")[0], // Get base code without suffix
-            subcourses: [],
-          };
-        }
-
-        // Add this course as a subcourse
-        coursesByMainCourse[mainCourseName].subcourses.push({
-          _id: course._id,
-          name: course.name,
-          code: course.code,
-          description: course.description,
-          credits: course.credits,
-          teacher: course.teacher?._id || course.teacher, // Handle both populated and non-populated
-          teacherName: course.teacher?.name || null, // Get teacher name if populated
-          schedule: course.schedule,
-          maxStudents: course.maxStudents,
-        });
-      });
-
-      // Convert to array for easier mapping
-      const groupedCourses = Object.values(coursesByMainCourse);
-      setCourses(groupedCourses);
+      setCourses(Array.isArray(courseArray) ? courseArray : []);
     } catch (error) {
       // Fallback to sample data
       const sampleCourses = [
@@ -379,20 +316,16 @@ const TeacherManagement = () => {
 
   // Edit Teacher
   const handleEditTeacher = (teacher) => {
-    // Extract assigned subcourses from courses data
-    const assignedSubcourses = [];
-
-    courses.forEach((mainCourse) => {
-      mainCourse.subcourses.forEach((subcourse) => {
-        if (subcourse.teacher === teacher._id) {
-          assignedSubcourses.push(subcourse._id);
-        }
-      });
+    const assignedCourses = [];
+    courses.forEach((course) => {
+      if (course.teacher === teacher._id || course.teacher?._id === teacher._id) {
+        assignedCourses.push(course._id);
+      }
     });
 
     setEditingTeacher({
       ...teacher,
-      assignedSubcourses: assignedSubcourses,
+      assignedCourses: assignedCourses,
     });
   };
 
@@ -424,37 +357,23 @@ const TeacherManagement = () => {
         },
       );
 
-      // Update course assignments - set teacher for selected subcourses
-      for (const mainCourse of courses) {
-        for (const subcourse of mainCourse.subcourses) {
-          const shouldBeAssigned = editingTeacher.assignedSubcourses.includes(
-            subcourse._id,
-          );
-          const isCurrentlyAssigned = subcourse.teacher === editingTeacher._id;
+      // Update course assignments
+      for (const course of courses) {
+        const shouldBeAssigned = editingTeacher.assignedCourses.includes(course._id);
+        const isCurrentlyAssigned = course.teacher === editingTeacher._id || course.teacher?._id === editingTeacher._id;
 
-          if (shouldBeAssigned && !isCurrentlyAssigned) {
-            // Assign this subcourse to teacher
-            await axios.put(
-              getApiUrl(`/courses/${subcourse._id}`),
-              {
-                teacher: editingTeacher._id,
-              },
-              {
-                headers: token ? { Authorization: `Bearer ${token}` } : {},
-              },
-            );
-          } else if (!shouldBeAssigned && isCurrentlyAssigned) {
-            // Remove teacher from this subcourse
-            await axios.put(
-              getApiUrl(`/courses/${subcourse._id}`),
-              {
-                teacher: null,
-              },
-              {
-                headers: token ? { Authorization: `Bearer ${token}` } : {},
-              },
-            );
-          }
+        if (shouldBeAssigned && !isCurrentlyAssigned) {
+          await axios.put(
+            getApiUrl(`/courses/${course._id}`),
+            { teacher: editingTeacher._id },
+            { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+          );
+        } else if (!shouldBeAssigned && isCurrentlyAssigned) {
+          await axios.put(
+            getApiUrl(`/courses/${course._id}`),
+            { teacher: null },
+            { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+          );
         }
       }
 
@@ -510,20 +429,14 @@ const TeacherManagement = () => {
 
       const newTeacherId = teacherResponse.data._id;
 
-      // Update subcourses to set the teacher reference
-      for (const mainCourse of courses) {
-        for (const subcourse of mainCourse.subcourses) {
-          if (newTeacher.assignedSubcourses.includes(subcourse._id)) {
-            await axios.put(
-              getApiUrl(`/courses/${subcourse._id}`),
-              {
-                teacher: newTeacherId,
-              },
-              {
-                headers: token ? { Authorization: `Bearer ${token}` } : {},
-              },
-            );
-          }
+      // Update courses to set the teacher reference
+      for (const course of courses) {
+        if (newTeacher.assignedCourses.includes(course._id)) {
+          await axios.put(
+            getApiUrl(`/courses/${course._id}`),
+            { teacher: newTeacherId },
+            { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+          );
         }
       }
 
@@ -533,7 +446,6 @@ const TeacherManagement = () => {
         email: "",
         password: "",
         assignedCourses: [],
-        assignedSubcourses: [],
       });
       fetchTeachers();
       fetchCourses(); // Refresh courses
@@ -616,81 +528,9 @@ const TeacherManagement = () => {
     }
   };
 
-  const toggleSubcourseAssignment = (
-    subcourseId,
-    mainCourseId,
-    isForNewTeacher = false,
-  ) => {
-    if (isForNewTeacher) {
-      setNewTeacher((prev) => ({
-        ...prev,
-        assignedSubcourses: prev.assignedSubcourses.includes(subcourseId)
-          ? prev.assignedSubcourses.filter((id) => id !== subcourseId)
-          : [...prev.assignedSubcourses, subcourseId],
-      }));
-    } else {
-      setEditingTeacher((prev) => ({
-        ...prev,
-        assignedSubcourses: prev.assignedSubcourses.includes(subcourseId)
-          ? prev.assignedSubcourses.filter((id) => id !== subcourseId)
-          : [...prev.assignedSubcourses, subcourseId],
-      }));
-    }
-  };
-
-  const isCourseAssigned = (mainCourseId, teacherData) => {
-    const mainCourse = courses.find((c) => c._id === mainCourseId);
-    if (!mainCourse) return false;
-
-    const assignedSubcourses = mainCourse.subcourses.filter((sc) =>
-      teacherData?.assignedSubcourses?.includes(sc._id),
-    );
-
-    // Consider main course assigned if any subcourse is assigned
-    return assignedSubcourses.length > 0;
-  };
-
-  const isSubcourseAssigned = (subcourseId, teacherData) => {
-    return teacherData?.assignedSubcourses?.includes(subcourseId);
-  };
-
-  const isAllSubcoursesAssigned = (mainCourseId, teacherData) => {
-    const mainCourse = courses.find((c) => c._id === mainCourseId);
-    if (!mainCourse) return false;
-
-    return mainCourse.subcourses.every((sc) =>
-      teacherData?.assignedSubcourses?.includes(sc._id),
-    );
-  };
-
-  const toggleCourseExpansion = (courseId) => {
-    setExpandedCourses((prev) => ({
-      ...prev,
-      [courseId]: !prev[courseId],
-    }));
-  };
-
-  // Get teaching courses for display (from course.teacher reference)
+  // Get teaching courses for display
   const getTeachingCoursesForTeacher = (teacher) => {
-    const teachingCourses = [];
-
-    courses.forEach((mainCourse) => {
-      mainCourse.subcourses.forEach((subcourse) => {
-        if (subcourse.teacher === teacher._id) {
-          teachingCourses.push({
-            ...subcourse,
-            mainCourseName: mainCourse.name,
-          });
-        }
-      });
-    });
-
-    return teachingCourses;
-  };
-
-  // Get assigned subcourses count
-  const getAssignedSubcoursesCount = (teacher) => {
-    return getTeachingCoursesForTeacher(teacher).length;
+    return courses.filter((course) => course.teacher === teacher._id || course.teacher?._id === teacher._id);
   };
 
   if (loading) {
@@ -776,10 +616,10 @@ const TeacherManagement = () => {
                 {/* Course Assignment Section */}
                 <div className="border-t pt-4">
                   <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
-                    Assign Courses & Subcourses
+                    Assign Courses
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    Select the courses and subcourses this teacher will teach
+                    Select the courses this teacher will teach
                   </p>
 
                   {courses.length === 0 ? (
@@ -787,100 +627,70 @@ const TeacherManagement = () => {
                       No courses available. Please create courses first.
                     </p>
                   ) : (
-                    <div className="space-y-2 max-h-96 overflow-y-auto">
-                      {courses.map((mainCourse) => {
-                        const isAssigned = isCourseAssigned(
-                          mainCourse._id,
-                          newTeacher,
-                        );
-                        const allAssigned = isAllSubcoursesAssigned(
-                          mainCourse._id,
-                          newTeacher,
-                        );
-                        const isExpanded = expandedCourses[mainCourse._id];
-                        const assignedSubcourses = mainCourse.subcourses.filter(
-                          (sub) => isSubcourseAssigned(sub._id, newTeacher),
-                        ).length;
-
-                        return (
+                    <div className="space-y-6 max-h-96 overflow-y-auto pr-2">
+                      {Object.values(
+                        courses.reduce((acc, mainCourse) => {
+                          const deptId = mainCourse.department?._id || "unassigned";
+                          const deptName = mainCourse.department?.name || "Unassigned Courses";
+                          if (!acc[deptId]) {
+                            acc[deptId] = { id: deptId, name: deptName, courses: [] };
+                          }
+                          acc[deptId].courses.push(mainCourse);
+                          return acc;
+                        }, {})
+                      ).map((dept) => (
+                        <div key={dept.id} className="space-y-3">
                           <div
-                            key={mainCourse._id}
-                            className="border border-gray-200 dark:border-gray-600 rounded-lg"
+                            className="flex items-center justify-between cursor-pointer border-b border-gray-200 dark:border-gray-700 pb-1 sticky top-0 bg-white dark:bg-gray-800 z-10"
+                            onClick={() => toggleDepartmentExpansion(dept.id)}
                           >
-                            <div className="flex items-center space-x-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors">
-                              <input
-                                type="checkbox"
-                                checked={allAssigned}
-                                ref={(input) => {
-                                  if (input) {
-                                    input.indeterminate =
-                                      isAssigned && !allAssigned;
-                                  }
-                                }}
-                                onChange={() =>
-                                  toggleCourseAssignment(mainCourse._id, true)
-                                }
-                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                  {mainCourse.name}
-                                </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                  Base Code: {mainCourse.baseCode}
-                                </p>
-                                <p className="text-xs text-blue-600 dark:text-blue-400">
-                                  {mainCourse.subcourses.length} subcourses
-                                  available
-                                </p>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                  {assignedSubcourses}/
-                                  {mainCourse.subcourses.length} assigned
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    toggleCourseExpansion(mainCourse._id)
-                                  }
-                                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer"
-                                >
-                                  {isExpanded ? (
-                                    <ChevronDown size={16} />
-                                  ) : (
-                                    <ChevronRight size={16} />
-                                  )}
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Subcourses */}
-                            {isExpanded && (
-                              <div className="bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-600 p-2">
-                                {mainCourse.subcourses.map((subcourse) => (
-                                  <SubcourseItem
-                                    key={subcourse._id}
-                                    subcourse={subcourse}
-                                    isAssigned={isSubcourseAssigned(
-                                      subcourse._id,
-                                      newTeacher,
-                                    )}
-                                    isParentAssigned={true}
-                                    onToggle={() =>
-                                      toggleSubcourseAssignment(
-                                        subcourse._id,
-                                        mainCourse._id,
-                                        true,
-                                      )
-                                    }
-                                  />
-                                ))}
-                              </div>
-                            )}
+                            <h4 className="font-semibold text-gray-800 dark:text-gray-200">
+                              {dept.name}
+                            </h4>
+                            <button
+                              type="button"
+                              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            >
+                              {expandedDepartments[dept.id] ? (
+                                <ChevronDown size={18} />
+                              ) : (
+                                <ChevronRight size={18} />
+                              )}
+                            </button>
                           </div>
-                        );
-                      })}
+                          {expandedDepartments[dept.id] && (
+                            <div className="space-y-2">
+                              {dept.courses.map((course) => {
+                                const isAssigned = newTeacher.assignedCourses.includes(course._id);
+
+                                return (
+                                  <div
+                                    key={course._id}
+                                    className="border border-gray-200 dark:border-gray-600 rounded-lg"
+                                  >
+                                    <div className="flex items-center space-x-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors">
+                                      <input
+                                        type="checkbox"
+                                        checked={isAssigned}
+                                        onChange={() => toggleCourseAssignment(course._id, true)}
+                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                          {course.name}
+                                        </p>
+                                        <p className="text-xs text-orange-500 dark:text-orange-400 truncate">
+                                          Assigned Teacher: {course.teacher?.name || "None"}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -984,15 +794,14 @@ const TeacherManagement = () => {
                 <div className="border-t pt-4">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                      Assigned Courses & Subcourses
+                      Assigned Courses
                     </h3>
                     <span className="text-sm text-gray-500 dark:text-gray-400">
-                      {getTeachingCoursesForTeacher(editingTeacher).length}
-                      subcourses assigned
+                      {editingTeacher.assignedCourses.length} courses assigned
                     </span>
                   </div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    Select the courses and subcourses this teacher will teach
+                    Select the courses this teacher will teach
                   </p>
 
                   {courses.length === 0 ? (
@@ -1000,99 +809,70 @@ const TeacherManagement = () => {
                       No courses available.
                     </p>
                   ) : (
-                    <div className="space-y-2 max-h-96 overflow-y-auto">
-                      {courses.map((mainCourse) => {
-                        const isAssigned = isCourseAssigned(
-                          mainCourse._id,
-                          editingTeacher,
-                        );
-                        const allAssigned = isAllSubcoursesAssigned(
-                          mainCourse._id,
-                          editingTeacher,
-                        );
-                        const isExpanded = expandedCourses[mainCourse._id];
-                        const assignedSubcourses = mainCourse.subcourses.filter(
-                          (sub) => isSubcourseAssigned(sub._id, editingTeacher),
-                        ).length;
-
-                        return (
+                    <div className="space-y-6 max-h-96 overflow-y-auto pr-2">
+                      {Object.values(
+                        courses.reduce((acc, mainCourse) => {
+                          const deptId = mainCourse.department?._id || "unassigned";
+                          const deptName = mainCourse.department?.name || "Unassigned Courses";
+                          if (!acc[deptId]) {
+                            acc[deptId] = { id: deptId, name: deptName, courses: [] };
+                          }
+                          acc[deptId].courses.push(mainCourse);
+                          return acc;
+                        }, {})
+                      ).map((dept) => (
+                        <div key={dept.id} className="space-y-3">
                           <div
-                            key={mainCourse._id}
-                            className="border border-gray-200 dark:border-gray-600 rounded-lg"
+                            className="flex items-center justify-between cursor-pointer border-b border-gray-200 dark:border-gray-700 pb-1 sticky top-0 bg-white dark:bg-gray-800 z-10"
+                            onClick={() => toggleDepartmentExpansion(dept.id)}
                           >
-                            <div className="flex items-center space-x-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors">
-                              <input
-                                type="checkbox"
-                                checked={allAssigned}
-                                ref={(input) => {
-                                  if (input) {
-                                    input.indeterminate =
-                                      isAssigned && !allAssigned;
-                                  }
-                                }}
-                                onChange={() =>
-                                  toggleCourseAssignment(mainCourse._id, false)
-                                }
-                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                  {mainCourse.name}
-                                </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                  Base Code: {mainCourse.baseCode}
-                                </p>
-                                <p className="text-xs text-blue-600 dark:text-blue-400">
-                                  {mainCourse.subcourses.length} subcourses
-                                </p>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                  {assignedSubcourses}/
-                                  {mainCourse.subcourses.length} assigned
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    toggleCourseExpansion(mainCourse._id)
-                                  }
-                                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer"
-                                >
-                                  {isExpanded ? (
-                                    <ChevronDown size={16} />
-                                  ) : (
-                                    <ChevronRight size={16} />
-                                  )}
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Subcourses */}
-                            {isExpanded && (
-                              <div className="bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-600 p-2">
-                                {mainCourse.subcourses.map((subcourse) => (
-                                  <SubcourseItem
-                                    key={subcourse._id}
-                                    subcourse={subcourse}
-                                    isAssigned={isSubcourseAssigned(
-                                      subcourse._id,
-                                      editingTeacher,
-                                    )}
-                                    isParentAssigned={true}
-                                    onToggle={() =>
-                                      toggleSubcourseAssignment(
-                                        subcourse._id,
-                                        mainCourse._id,
-                                        false,
-                                      )
-                                    }
-                                  />
-                                ))}
-                              </div>
-                            )}
+                            <h4 className="font-semibold text-gray-800 dark:text-gray-200">
+                              {dept.name}
+                            </h4>
+                            <button
+                              type="button"
+                              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            >
+                              {expandedDepartments[dept.id] ? (
+                                <ChevronDown size={18} />
+                              ) : (
+                                <ChevronRight size={18} />
+                              )}
+                            </button>
                           </div>
-                        );
-                      })}
+                          {expandedDepartments[dept.id] && (
+                            <div className="space-y-2">
+                              {dept.courses.map((course) => {
+                                const isAssigned = editingTeacher.assignedCourses.includes(course._id);
+
+                                return (
+                                  <div
+                                    key={course._id}
+                                    className="border border-gray-200 dark:border-gray-600 rounded-lg"
+                                  >
+                                    <div className="flex items-center space-x-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors">
+                                      <input
+                                        type="checkbox"
+                                        checked={isAssigned}
+                                        onChange={() => toggleCourseAssignment(course._id, false)}
+                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                          {course.name}
+                                        </p>
+                                        <p className="text-xs text-orange-500 dark:text-orange-400 truncate">
+                                          Assigned Teacher: {course.teacher?.name || "None"}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -1186,7 +966,6 @@ const TeacherManagement = () => {
         ) : (
           filteredTeachers.map((teacher) => {
             const teachingCourses = getTeachingCoursesForTeacher(teacher);
-            const assignedSubcoursesCount = getAssignedSubcoursesCount(teacher);
 
             return (
               <div
@@ -1203,11 +982,10 @@ const TeacherManagement = () => {
                     </p>
                   </div>
                   <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      teacher.isActive
-                        ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                        : "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
-                    }`}
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${teacher.isActive
+                      ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                      : "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
+                      }`}
                   >
                     {teacher.isActive ? "Active" : "Inactive"}
                   </span>
@@ -1230,7 +1008,7 @@ const TeacherManagement = () => {
                         className="mr-2 shrink-0 text-blue-400"
                       />
                       <span>
-                        Teaching {teachingCourses.length} subcourse(s)
+                        Teaching {teachingCourses.length} course(s)
                       </span>
                     </div>
 
@@ -1246,13 +1024,13 @@ const TeacherManagement = () => {
                               className="mr-1 text-green-500 shrink-0"
                             />
                             <span className="text-gray-500 dark:text-gray-400 truncate">
-                              {course.code}: {course.description}
+                              {course.name}
                             </span>
                           </div>
                         ))}
                         {teachingCourses.length > 3 && (
                           <div className="text-xs text-gray-400 italic">
-                            +{teachingCourses.length - 3} more subcourses
+                            +{teachingCourses.length - 3} more courses
                           </div>
                         )}
                       </div>
