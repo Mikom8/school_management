@@ -60,6 +60,7 @@ const Dashboard = () => {
   const [stats, setStats] = useState({
     students: 0,
     teachers: 0,
+    departments: 0,
     courses: 0,
     attendance: 0,
   });
@@ -646,9 +647,9 @@ const Dashboard = () => {
           color="bg-linear-to-br from-green-400 to-green-600"
         />
         <AdminStatCard
-          icon={BookOpen}
-          title="Courses"
-          value={stats.courses || 0}
+          icon={Folder}
+          title="Departments"
+          value={stats.departments || 0}
           color="bg-linear-to-br from-purple-400 to-purple-600"
         />
         <AdminStatCard

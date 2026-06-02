@@ -20,6 +20,7 @@ import {
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
 import SkeletonLoading from "../Common/SkeletonLoading";
+import Toast from "../Common/Toast";
 
 // Custom Popup Component
 const CustomPopup = ({
@@ -122,7 +123,13 @@ const TeacherManagement = () => {
   const [deletingId, setDeletingId] = useState(null);
   const { user } = useAuth();
 
-  // Popup states
+  // Toast states
+  const [toast, setToast] = useState({
+    show: false,
+    message: "",
+  });
+
+  // Popup states (for confirmations only)
   const [popup, setPopup] = useState({
     show: false,
     type: "info",
@@ -145,6 +152,13 @@ const TeacherManagement = () => {
     fetchCourses();
   }, []);
 
+  const showToast = (message) => {
+    setToast({
+      show: true,
+      message,
+    });
+  };
+
   const showPopup = (
     type,
     title,
@@ -152,6 +166,15 @@ const TeacherManagement = () => {
     onConfirm = null,
     onCancel = null,
   ) => {
+    // For success messages, use toast instead
+    if (type === "success") {
+      showToast(message);
+      if (onConfirm) {
+        onConfirm();
+      }
+      return;
+    }
+
     setPopup({
       show: true,
       type,
@@ -298,7 +321,7 @@ const TeacherManagement = () => {
 
           fetchTeachers();
           fetchCourses(); // Refresh courses to update assignments
-          showPopup("success", "Success", "Teacher deleted successfully!");
+          showToast("Teacher deleted successfully!");
         } catch (error) {
           console.error("Error deleting teacher:", error);
           showPopup("error", "Error", "Failed to delete teacher");
@@ -375,7 +398,7 @@ const TeacherManagement = () => {
       setEditingTeacher(null);
       fetchTeachers();
       fetchCourses(); // Refresh courses to get updated teacher assignments
-      showPopup("success", "Success", "Teacher updated successfully!");
+      showToast("Teacher updated successfully!");
     } catch (error) {
       console.error("Error updating teacher:", error);
       showPopup("error", "Error", "Failed to update teacher");
@@ -444,7 +467,7 @@ const TeacherManagement = () => {
       });
       fetchTeachers();
       fetchCourses(); // Refresh courses
-      showPopup("success", "Success", "Teacher added successfully!");
+      showToast("Teacher added successfully!");
     } catch (error) {
       console.error("Error adding teacher:", error);
       showPopup("error", "Error", "Failed to add teacher");
@@ -507,7 +530,14 @@ const TeacherManagement = () => {
 
   return (
     <div className="space-y-6 font-saira">
-      {/* Custom Popup */}
+      {/* Toast Notification */}
+      <Toast
+        message={toast.message}
+        show={toast.show}
+        onClose={() => setToast({ show: false, message: "" })}
+      />
+
+      {/* Custom Popup (for warnings/errors) */}
       <CustomPopup
         type={popup.type}
         title={popup.title}

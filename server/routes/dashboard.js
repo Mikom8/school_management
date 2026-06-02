@@ -4,6 +4,7 @@ const User = require("../models/User");
 const Student = require("../models/Student");
 const Course = require("../models/Course");
 const Grade = require("../models/Grade");
+const Department = require("../models/Department");
 const { auth } = require("../middleware/auth");
 const { cacheMiddleware } = require("../middleware/cache");
 
@@ -19,12 +20,12 @@ router.get("/", auth, cacheMiddleware(300), async (req, res) => {
       // Admin dashboard stats
       const totalStudents = await Student.countDocuments();
       const totalTeachers = await User.countDocuments({ role: "teacher" });
-      const totalCourses = await Course.countDocuments();
+      const totalDepartments = await Department.countDocuments();
 
       dashboardData = {
         students: totalStudents,
         teachers: totalTeachers,
-        courses: totalCourses,
+        departments: totalDepartments,
         attendance: 94, // Mock data for demo
       };
     } else if (userRole === "teacher") {

@@ -17,6 +17,7 @@ import {
   User,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
+import Toast from "../Common/Toast";
 import SkeletonLoading from "../Common/SkeletonLoading";
 
 const CourseManagement = () => {
@@ -33,10 +34,9 @@ const CourseManagement = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const { user } = useAuth();
-  const [notification, setNotification] = useState({
+  const [toast, setToast] = useState({
     show: false,
     message: "",
-    type: "",
   });
   const [formData, setFormData] = useState({
     name: "",
@@ -54,12 +54,9 @@ const CourseManagement = () => {
     semester: "",
   });
 
-  // Custom notification popup
-  const showNotification = (message, type = "success") => {
-    setNotification({ show: true, message, type });
-    setTimeout(() => {
-      setNotification({ show: false, message: "", type: "" });
-    }, 4000);
+  // Toast notification
+  const showToast = (message) => {
+    setToast({ show: true, message });
   };
 
   // Custom confirmation dialog state
@@ -429,7 +426,7 @@ const CourseManagement = () => {
         setCourses((prev) => [...prev, newCourse]);
         setShowCreateModal(false);
         resetForm();
-        showNotification("Course created successfully!", "success");
+        showToast("Course created successfully!");
         return;
       }
 
@@ -459,10 +456,10 @@ const CourseManagement = () => {
       setCourses((prev) => [...prev, newCourse]);
       setShowCreateModal(false);
       resetForm();
-      showNotification("Course created successfully!", "success");
+      showToast("Course created successfully!");
     } catch (error) {
       console.error("Error creating course:", error);
-      showNotification(`Failed to create course: ${error.message}`, "error");
+      setError(`Failed to create course: ${error.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -504,7 +501,7 @@ const CourseManagement = () => {
         );
         setEditingCourse(null);
         resetForm();
-        showNotification("Course updated successfully!", "success");
+        showToast("Course updated successfully!");
         return;
       }
 
@@ -531,10 +528,10 @@ const CourseManagement = () => {
       setEditingCourse(null);
       setShowCreateModal(false);
       resetForm();
-      showNotification("Course updated successfully!", "success");
+      showToast("Course updated successfully!");
     } catch (error) {
       console.error("Error updating course:", error);
-      showNotification(`Failed to update course: ${error.message}`, "error");
+      setError(`Failed to update course: ${error.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -552,7 +549,7 @@ const CourseManagement = () => {
           const token = getAuthToken();
           if (!token) {
             setCourses((prev) => prev.filter((course) => course._id !== id));
-            showNotification("Course deleted successfully!", "success");
+            showToast("Course deleted successfully!");
             return;
           }
 
@@ -568,13 +565,10 @@ const CourseManagement = () => {
           }
 
           setCourses((prev) => prev.filter((course) => course._id !== id));
-          showNotification("Course deleted successfully!", "success");
+          showToast("Course deleted successfully!");
         } catch (error) {
           console.error("Error deleting course:", error);
-          showNotification(
-            `Failed to delete course: ${error.message}`,
-            "error",
-          );
+          setError(`Failed to delete course: ${error.message}`);
         } finally {
           setDeletingId(null);
         }
@@ -604,20 +598,17 @@ const CourseManagement = () => {
     e.preventDefault();
 
     if (!formData.name || !formData.code) {
-      showNotification("Please fill in all required fields", "error");
+      setError("Please fill in all required fields");
       return;
     }
 
     if (formData.schedule.days.length === 0) {
-      showNotification(
-        "Please select at least one day for the schedule",
-        "error",
-      );
+      setError("Please select at least one day for the schedule");
       return;
     }
 
     if (!formData.department || !formData.year || !formData.semester) {
-      showNotification("Please select department, year and semester", "error");
+      setError("Please select department, year and semester");
       return;
     }
 
@@ -744,32 +735,12 @@ const CourseManagement = () => {
 
   return (
     <div className="space-y-6 font-saira">
-      {/* Notification Popup */}
-      {notification.show && (
-        <div
-          className={`fixed top-4 right-4 z-50 max-w-sm ${notification.type === "error"
-            ? "bg-red-100 border-red-400 text-red-700"
-            : "bg-green-100 border-green-400 text-green-700"
-            } border px-4 py-3 rounded-lg shadow-lg flex items-start space-x-3 animate-in slide-in-from-right-full duration-500`}
-        >
-          {notification.type === "error" ? (
-            <AlertCircle className="shrink-0 mt-0.5" size={20} />
-          ) : (
-            <CheckCircle className="shrink-0 mt-0.5" size={20} />
-          )}
-          <div className="flex-1">
-            <p className="text-sm font-medium">{notification.message}</p>
-          </div>
-          <button
-            onClick={() =>
-              setNotification({ show: false, message: "", type: "" })
-            }
-            className="text-gray-400 hover:text-gray-600"
-          >
-            <X size={16} />
-          </button>
-        </div>
-      )}
+      {/* Toast Notification */}
+      <Toast
+        message={toast.message}
+        show={toast.show}
+        onClose={() => setToast({ show: false, message: "" })}
+      />
       {/* Confirmation Dialog */}
       {confirmDialog.show && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -1118,7 +1089,7 @@ const CourseManagement = () => {
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
-                if (!deptForm.name.trim()) { showNotification("Department name is required", "error"); return; }
+                if (!deptForm.name.trim()) { setError("Department name is required"); return; }
                 setDeptSubmitting(true);
                 try {
                   const token = getAuthToken();
@@ -1135,9 +1106,9 @@ const CourseManagement = () => {
                   await fetchDepartments();
                   setShowDeptModal(false);
                   setDeptForm({ name: "", code: "", description: "" });
-                  showNotification("Department created", "success");
+                  showToast("Department created successfully!");
                 } catch (err) {
-                  showNotification(`Failed to create department: ${err.message}`, "error");
+                  setError(`Failed to create department: ${err.message}`);
                 } finally { setDeptSubmitting(false); }
               }}
             >
@@ -1202,7 +1173,7 @@ const CourseManagement = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Year *</label>
                   <select name="year" value={formData.year} onChange={handleInputChange} className="input w-full" required>
-                    <option value="" selected disabled>Select Year</option>
+                    <option value="" disabled>Select Year</option>
                     <option value="Remedial">Remedial</option>
                     <option value="1st Year">1st Year</option>
                     <option value="2nd Year">2nd Year</option>
@@ -1214,7 +1185,7 @@ const CourseManagement = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Semester *</label>
                   <select name="semester" value={formData.semester} onChange={handleInputChange} className="input w-full" required>
-                    <option value="" selected disabled>Select Semester</option>
+                    <option value="" disabled>Select Semester</option>
                     <option value="1st Semester">1st Semester</option>
                     <option value="2nd Semester">2nd Semester</option>
                   </select>
@@ -1224,7 +1195,7 @@ const CourseManagement = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Department *</label>
                 <select name="department" value={formData.department || ""} onChange={handleInputChange} className="input w-full" required>
-                  <option value="" selected disabled>Select Department</option>
+                  <option value="" disabled>Select Department</option>
                   {departments.map((d) => (
                     <option key={d._id} value={d._id}>{d.name}</option>
                   ))}
