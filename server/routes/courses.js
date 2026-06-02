@@ -284,7 +284,7 @@ router.get("/my-courses", auth, authorize("student"), async (req, res) => {
 
     const courses = await Course.find(query)
       .populate("teacher", "name email")
-      .select("name code description credits schedule teacher enrolledStudents maxStudents isActive");
+      .select("name code description credits schedule teacher enrolledStudents maxStudents isActive department");
       
     // Map to include department info in selection if present
     const mapped = await Promise.all(courses.map(async (c) => {

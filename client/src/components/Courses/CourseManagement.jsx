@@ -869,21 +869,23 @@ const CourseManagement = () => {
             />
           </div>
 
-          <div className="relative">
-            <select
-              value={selectedDeptFilter}
-              onChange={(e) => setSelectedDeptFilter(e.target.value)}
-              className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all duration-300 shadow-sm cursor-pointer min-w-[180px]"
-            >
-              <option value="all">All Departments</option>
-              {departments.map((dept) => (
-                <option key={dept._id} value={dept._id}>
-                  {dept.name}
-                </option>
-              ))}
-              <option value="unassigned">Unassigned</option>
-            </select>
-          </div>
+          {user?.role === "admin" && (
+            <div className="relative">
+              <select
+                value={selectedDeptFilter}
+                onChange={(e) => setSelectedDeptFilter(e.target.value)}
+                className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all duration-300 shadow-sm cursor-pointer min-w-[180px]"
+              >
+                <option value="all">All Departments</option>
+                {departments.map((dept) => (
+                  <option key={dept._id} value={dept._id}>
+                    {dept.name}
+                  </option>
+                ))}
+                <option value="unassigned">Unassigned</option>
+              </select>
+            </div>
+          )}
 
           {user?.role === "admin" && (
             <>
@@ -936,8 +938,20 @@ const CourseManagement = () => {
           {Object.values(
             filteredCourses.reduce((acc, course) => {
               const deptId = course.department?._id || course.department || "unassigned";
-              const deptName = course.department?.name || "Unassigned";
-              const deptCode = course.department?.code || "";
+              let deptName = "Unassigned";
+              let deptCode = "";
+
+              if (course.department && typeof course.department === "object") {
+                deptName = course.department.name || "Unassigned";
+                deptCode = course.department.code || "";
+              } else if (course.department && course.department !== "unassigned") {
+                const foundDept = departments.find((d) => d._id === course.department);
+                if (foundDept) {
+                  deptName = foundDept.name;
+                  deptCode = foundDept.code || "";
+                }
+              }
+
               if (!acc[deptId]) {
                 acc[deptId] = { id: deptId, name: deptName, code: deptCode, courses: [] };
               }
