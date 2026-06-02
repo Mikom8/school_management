@@ -330,26 +330,68 @@ const CourseManagement = () => {
     return null;
   };
 
-  // Function to count students enrolled in a course
-  const getStudentCountForCourse = (courseName) => {
+  // Function to count students enrolled in a course by matching department + year + semester
+  const getStudentCountForCourse = (course) => {
     if (!students.length) return 0;
+    const courseDeptId =
+      typeof course.department === "object"
+        ? course.department?._id?.toString()
+        : course.department?.toString();
 
-    return students.filter(
-      (student) =>
-        student.course &&
-        student.course.toLowerCase() === courseName.toLowerCase(),
-    ).length;
+    return students.filter((student) => {
+      // Match by enrolledStudents array (formal enrollment)
+      if (
+        Array.isArray(course.enrolledStudents) &&
+        course.enrolledStudents.some(
+          (id) => id?.toString() === student._id?.toString()
+        )
+      )
+        return true;
+
+      // Match by department + year (grade) + semester
+      const studentDeptId =
+        typeof student.department === "object"
+          ? student.department?._id?.toString()
+          : student.department?.toString();
+      return (
+        courseDeptId &&
+        studentDeptId &&
+        courseDeptId === studentDeptId &&
+        student.grade === course.year &&
+        student.semester === course.semester
+      );
+    }).length;
   };
 
-  // Function to get students enrolled in a course
-  const getStudentsForCourse = (courseName) => {
+  // Function to get students enrolled in a course by matching department + year + semester
+  const getStudentsForCourse = (course) => {
     if (!students.length) return [];
+    const courseDeptId =
+      typeof course.department === "object"
+        ? course.department?._id?.toString()
+        : course.department?.toString();
 
-    return students.filter(
-      (student) =>
-        student.course &&
-        student.course.toLowerCase() === courseName.toLowerCase(),
-    );
+    return students.filter((student) => {
+      if (
+        Array.isArray(course.enrolledStudents) &&
+        course.enrolledStudents.some(
+          (id) => id?.toString() === student._id?.toString()
+        )
+      )
+        return true;
+
+      const studentDeptId =
+        typeof student.department === "object"
+          ? student.department?._id?.toString()
+          : student.department?.toString();
+      return (
+        courseDeptId &&
+        studentDeptId &&
+        courseDeptId === studentDeptId &&
+        student.grade === course.year &&
+        student.semester === course.semester
+      );
+    });
   };
 
   const createCourse = async (courseData) => {
@@ -486,6 +528,7 @@ const CourseManagement = () => {
         prev.map((course) => (course._id === id ? updatedCourse : course)),
       );
       setEditingCourse(null);
+      setShowCreateModal(false);
       resetForm();
       showNotification("Course updated successfully!", "success");
     } catch (error) {
@@ -559,7 +602,7 @@ const CourseManagement = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.code || !formData.description) {
+    if (!formData.name || !formData.code) {
       showNotification("Please fill in all required fields", "error");
       return;
     }
@@ -675,7 +718,7 @@ const CourseManagement = () => {
     const matchesSearch =
       course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       course.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      course.description.toLowerCase().includes(searchTerm.toLowerCase());
+      (course.description || "").toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
 
@@ -728,48 +771,6 @@ const CourseManagement = () => {
             <div className="flex items-center space-x-3 mb-4">
               <div className="shrink-0">
                 <Info className="text-yellow-500" size={24} />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Year
-                  </label>
-                  <select
-                    name="year"
-                    value={formData.year}
-                    onChange={handleInputChange}
-                    className="input w-full"
-                    required
-                  >
-                    <option value="">Select Year</option>
-                    <option value="1st Year">1st Year</option>
-                    <option value="2nd Year">2nd Year</option>
-                    <option value="3rd Year">3rd Year</option>
-                    <option value="4th Year">4th Year</option>
-                    <option value="5th Year">5th Year</option>
-                    <option value="Remedial">Remedial</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Semester
-                  </label>
-                  <select
-                    name="semester"
-                    value={formData.semester}
-                    onChange={handleInputChange}
-                    className="input w-full"
-                    required
-                  >
-                    <option value="">Select Semester</option>
-                    <option value="1st Semester">1st Semester</option>
-                    <option value="2nd Semester">2nd Semester</option>
-                    <option value="Spring">Spring</option>
-                    <option value="Fall">Fall</option>
-                  </select>
-                </div>
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -1042,7 +1043,7 @@ const CourseManagement = () => {
         {filteredCourses.map((course) => {
           const assignedTeacher = getAssignedTeacher(course);
           const displayCode = course.code.split("-")[0];
-          const studentCount = getStudentCountForCourse(course.name);
+          const studentCount = getStudentCountForCourse(course);
 
           return (
             <div
@@ -1221,47 +1222,16 @@ const CourseManagement = () => {
                     placeholder="e.g., COMP01"
                     required
                   />
-                                   
                   <p className="text-xs text-gray-500 mt-1">
-                                        Same base code for all subcourses under
-                    this main course                  
+                    Same base code for all subcourses under this main course
                   </p>
-                                 
                 </div>
-                             
               </div>
-                           
-              <div>
-                               
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Subcourse Description *                
-                </label>
-                               
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  rows={3}
-                  className="input w-full resize-none"
-                  placeholder="e.g., Introduction to Programming, Data Structures, Algorithms, etc."
-                  required
-                />
-                               
-                <p className="text-xs text-gray-500 mt-1">
-                                    This differentiates between subcourses under
-                  the same main                   course                
-                </p>
-                             
-              </div>
-                           
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                               
                 <div>
-                                   
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Credits *                  
+                    Credits *
                   </label>
-                                   
                   <input
                     type="number"
                     name="credits"
@@ -1272,48 +1242,69 @@ const CourseManagement = () => {
                     max="100"
                     required
                   />
-                                 
                 </div>
-                               
                 <div>
-                                   
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Department *
-                      </label>
-                      <select
-                        name="department"
-                        value={formData.department || ""}
-                        onChange={handleInputChange}
-                        className="input w-full"
-                        required
-                      >
-                        <option value="">Select Department</option>
-                        {departments.map((d) => (
-                          <option key={d._id} value={d._id}>
-                            {d.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                     Max Students                  
+                    Department *
                   </label>
-                                   
-                  <input
-                    type="number"
-                    name="maxStudents"
-                    value={formData.maxStudents}
+                  <select
+                    name="department"
+                    value={formData.department || ""}
                     onChange={handleInputChange}
                     className="input w-full"
-                    min="1"
-                    max="500"
-                  />
-                                 
+                    required
+                  >
+                    <option value="">Select Department</option>
+                    {departments.map((d) => (
+                      <option key={d._id} value={d._id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                             
               </div>
-                            {/* Schedule Section */}             
+
+              {/* Year & Semester */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Year *
+                  </label>
+                  <select
+                    name="year"
+                    value={formData.year}
+                    onChange={handleInputChange}
+                    className="input w-full"
+                    required
+                  >
+                    <option value="">Select Year</option>
+                    <option value="Remedial">Remedial</option>
+                    <option value="1st Year">1st Year</option>
+                    <option value="2nd Year">2nd Year</option>
+                    <option value="3rd Year">3rd Year</option>
+                    <option value="4th Year">4th Year</option>
+                    <option value="5th Year">5th Year</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Semester *
+                  </label>
+                  <select
+                    name="semester"
+                    value={formData.semester}
+                    onChange={handleInputChange}
+                    className="input w-full"
+                    required
+                  >
+                    <option value="">Select Semester</option>
+                    <option value="1st Semester">1st Semester</option>
+                    <option value="2nd Semester">2nd Semester</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Schedule Section */}
               <div className="border-t border-gray-600 pt-6">
                                
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">

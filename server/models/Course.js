@@ -15,7 +15,7 @@ const courseSchema = new mongoose.Schema(
     },
     description: {
       type: String,
-      required: true,
+      required: false,
     },
     credits: {
       type: Number,
@@ -35,11 +35,13 @@ const courseSchema = new mongoose.Schema(
     },
     year: {
       type: String,
-      required: false,
+      required: true,
+      enum: ["Remedial", "1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year"],
     },
     semester: {
       type: String,
-      required: false,
+      required: true,
+      enum: ["1st Semester", "2nd Semester"],
     },
     schedule: {
       days: [

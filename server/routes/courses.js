@@ -194,6 +194,62 @@ router.get("/teacher-courses", auth, authorize("teacher"), async (req, res) => {
   }
 });
 
+// @desc    Get all departments
+// @route   GET /api/courses/departments
+// @access  Private
+router.get("/departments", auth, async (req, res) => {
+  try {
+    const departments = await Department.find({ isActive: true }).select("_id name code description").sort({ name: 1 });
+    res.json({ success: true, data: departments });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error fetching departments: " + error.message });
+  }
+});
+
+// @desc    Create a department
+// @route   POST /api/courses/departments
+// @access  Private (Admin)
+router.post("/departments", auth, authorize("admin"), async (req, res) => {
+  try {
+    const { name, code, description } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: "Department name is required" });
+    }
+    const existing = await Department.findOne({ name: { $regex: new RegExp(`^${name.trim()}$`, "i") } });
+    if (existing) {
+      return res.status(400).json({ success: false, message: "Department with this name already exists" });
+    }
+    const department = await Department.create({
+      name: name.trim(),
+      code: code ? code.trim().toUpperCase() : undefined,
+      description: description ? description.trim() : undefined,
+    });
+    try {
+      await Activity.create({
+        type: "department_created",
+        description: `Created department: ${department.name}`,
+        user: req.user ? req.user.name : "Admin",
+      });
+    } catch (e) { /* ignore */ }
+    res.status(201).json({ success: true, data: department });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error creating department: " + error.message });
+  }
+});
+
+// @desc    Delete a department
+// @route   DELETE /api/courses/departments/:id
+// @access  Private (Admin)
+router.delete("/departments/:id", auth, authorize("admin"), async (req, res) => {
+  try {
+    const dept = await Department.findByIdAndDelete(req.params.id);
+    if (!dept) return res.status(404).json({ success: false, message: "Department not found" });
+    res.json({ success: true, message: "Department deleted" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error deleting department: " + error.message });
+  }
+});
+
 // @desc    Get courses enrolled by the logged-in student
 // @route   GET /api/courses/my-courses
 // @access  Private (Student)
@@ -218,9 +274,12 @@ router.get("/my-courses", auth, authorize("student"), async (req, res) => {
       ],
     };
 
-    // Add name-based match only if student has a course string set
-    if (student.course && student.course.trim()) {
-      query.$or.push({ name: { $regex: new RegExp(`^${student.course.trim()}$`, "i") } });
+    if (student.department && student.grade && student.semester) {
+      query.$or.push({
+        department: student.department,
+        year: student.grade,
+        semester: student.semester,
+      });
     }
 
     const courses = await Course.find(query)

@@ -29,13 +29,17 @@ const studentSchema = new mongoose.Schema(
       required: true,
       enum: [
         "Remedial",
-        "1st Year Degree",
-        "2nd Year Degree",
-        "3rd Year Degree",
-        "4th Year Degree",
-        "5th Year Degree",
-        "1st-3rd Year Diploma",
+        "1st Year",
+        "2nd Year",
+        "3rd Year",
+        "4th Year",
+        "5th Year",
       ],
+    },
+    semester: {
+      type: String,
+      required: true,
+      enum: ["1st Semester", "2nd Semester"],
     },
     dateOfBirth: {
       type: Date,
@@ -66,8 +70,8 @@ const studentSchema = new mongoose.Schema(
       default: Date.now,
     },
     department: {
-      type: String,
-      trim: true,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Department",
     },
   },
   {

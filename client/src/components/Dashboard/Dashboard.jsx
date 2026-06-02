@@ -533,9 +533,8 @@ const Dashboard = () => {
           </p>
           {change && (
             <p
-              className={`text-sm ${
-                change > 0 ? "text-green-600" : "text-red-600"
-              } mt-1`}
+              className={`text-sm ${change > 0 ? "text-green-600" : "text-red-600"
+                } mt-1`}
             >
               {change > 0 ? "+" : ""}
               {change}% from last month

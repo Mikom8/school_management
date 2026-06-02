@@ -31,6 +31,7 @@ const StudentManagement = () => {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [gradeReportData, setGradeReportData] = useState(null);
   const [courses, setCourses] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
@@ -64,6 +65,7 @@ const StudentManagement = () => {
     parentName: "",
     parentContact: "",
     emergencyContact: "",
+    semester: "",
     course: "",
     department: "",
     address: {
@@ -82,6 +84,7 @@ const StudentManagement = () => {
     parentName: "",
     parentContact: "",
     emergencyContact: "",
+    semester: "",
     course: "",
     department: "",
     address: {
@@ -95,6 +98,7 @@ const StudentManagement = () => {
   useEffect(() => {
     fetchStudents();
     fetchAvailableCourses();
+    fetchDepartments();
   }, []);
 
   // Auto-hide notification after 5 seconds
@@ -129,6 +133,19 @@ const StudentManagement = () => {
     }
   };
 
+  const fetchDepartments = async () => {
+    try {
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      const response = await axios.get("/courses/departments", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      setDepartments(response.data?.data || []);
+    } catch (error) {
+      console.error("Error fetching departments:", error);
+      setDepartments([]);
+    }
+  };
+
   const fetchStudentGrades = async (studentId) => {
     try {
       const response = await axios.get(`/grades?studentId=${studentId}`);
@@ -140,11 +157,16 @@ const StudentManagement = () => {
   };
 
   const filteredStudents = students.filter((student) => {
+    // department may be a populated object {_id, name} or a plain string
+    const deptName =
+      typeof student.department === "object"
+        ? student.department?.name || ""
+        : student.department || "";
     const matchesSearch =
       student.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.studentId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.course?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.department?.toLowerCase().includes(searchTerm.toLowerCase());
+      deptName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesGrade = !filterGrade || student.grade === filterGrade;
     return matchesSearch && matchesGrade;
   });
@@ -213,7 +235,7 @@ const StudentManagement = () => {
       parentName: student.parentName || "",
       parentContact: student.parentContact || "",
       emergencyContact: student.emergencyContact || "",
-      course: student.course || "",
+      semester: student.semester || "",
       department: student.department || "",
       address: {
         street: student.address?.street || "",
@@ -237,7 +259,7 @@ const StudentManagement = () => {
         parentName: editStudent.parentName,
         parentContact: editStudent.parentContact,
         emergencyContact: editStudent.emergencyContact,
-        course: editStudent.course,
+        semester: editStudent.semester,
         department: editStudent.department,
         address: editStudent.address,
       };
@@ -364,8 +386,8 @@ const StudentManagement = () => {
       parentName: newStudent.parentName.trim(),
       parentContact: newStudent.parentContact.trim(),
       emergencyContact: newStudent.emergencyContact.trim(),
-      course: newStudent.course.trim(),
-      department: newStudent.department.trim(),
+      semester: newStudent.semester,
+      department: newStudent.department,
       address: {
         street: newStudent.address.street.trim(),
         city: newStudent.address.city.trim(),
@@ -422,7 +444,7 @@ const StudentManagement = () => {
         parentContact: cleanedStudent.parentContact,
         emergencyContact:
           cleanedStudent.emergencyContact || cleanedStudent.parentContact,
-        course: cleanedStudent.course,
+        semester: cleanedStudent.semester,
         department: cleanedStudent.department,
         address: cleanedStudent.address,
       };
@@ -440,7 +462,7 @@ const StudentManagement = () => {
           parentName: "",
           parentContact: "",
           emergencyContact: "",
-          course: "",
+          semester: "",
           department: "",
           address: { street: "", city: "", state: "", zipCode: "" },
         });
@@ -516,13 +538,14 @@ const StudentManagement = () => {
   // College grade options
   const gradeOptions = [
     "Remedial",
-    "1st Year Degree",
-    "2nd Year Degree",
-    "3rd Year Degree",
-    "4th Year Degree",
-    "5th Year Degree",
-    "1st-3rd Year Diploma",
+    "1st Year",
+    "2nd Year",
+    "3rd Year",
+    "4th Year",
+    "5th Year",
   ];
+
+  const semesterOptions = ["1st Semester", "2nd Semester"];
 
   // Notification icon and colors
   const getNotificationStyles = (type) => {
@@ -639,7 +662,7 @@ const StudentManagement = () => {
 
       {/* Grade Report Modal */}
       {showGradeReport && gradeReportData && (
-        <div className="fixed top-0 right-0 w-[100%] h-screen bg-black/80 bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed top-0 right-0 w-full h-screen bg-black/80 bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 border dark:border-gray-400 border-blue-500 rounded-lg max-w-4xl w-full max-h-[92vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
@@ -775,7 +798,7 @@ const StudentManagement = () => {
 
       {/* Edit Student Modal */}
       {showEditForm && selectedStudent && (
-        <div className="fixed top-0 right-0 w-[100%] h-screen bg-black/80 bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed top-0 right-0 w-full h-screen bg-black/80 bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 border dark:border-gray-400 border-blue-500 rounded-lg max-w-4xl w-full max-h-[92vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
@@ -838,45 +861,43 @@ const StudentManagement = () => {
                       className="input"
                     />
                   </div>
-                  {/* In your Edit Student form */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Course/Program *
+                      Semester *
                     </label>
                     <select
-                      name="course"
+                      name="semester"
                       required
-                      value={editStudent.course}
+                      value={editStudent.semester}
                       onChange={handleEditInputChange}
                       className="input"
-                      disabled={coursesLoading}
                     >
-                      <option value="">Select a course</option>
-                      {coursesLoading ? (
-                        <option value="" disabled>
-                          Loading courses...
+                      <option value="">Select Semester</option>
+                      {semesterOptions.map((sem) => (
+                        <option key={sem} value={sem}>
+                          {sem}
                         </option>
-                      ) : (
-                        courses.map((course) => (
-                          <option key={course._id} value={course.name}>
-                            {course.name} {/* Shows only main course name */}
-                          </option>
-                        ))
-                      )}
+                      ))}
                     </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Department
+                      Department *
                     </label>
-                    <input
-                      type="text"
+                    <select
                       name="department"
+                      required
                       value={editStudent.department}
                       onChange={handleEditInputChange}
                       className="input"
-                      placeholder="e.g., Computer Science"
-                    />
+                    >
+                      <option value="">Select Department</option>
+                      {departments.map((dept) => (
+                        <option key={dept._id} value={dept._id}>
+                          {dept.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -1038,7 +1059,7 @@ const StudentManagement = () => {
 
       {/* Add Student Form Modal */}
       {showAddForm && (
-        <div className="fixed top-0 right-0 w-[100%] h-screen bg-black/80 bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed top-0 right-0 w-full h-screen bg-black/80 bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 border dark:border-gray-400 border-blue-500 rounded-lg max-w-4xl w-full max-h-[92vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
@@ -1142,49 +1163,41 @@ const StudentManagement = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Course/Program *
+                      Semester *
                     </label>
                     <select
-                      name="course"
+                      name="semester"
                       required
-                      value={newStudent.course}
+                      value={newStudent.semester}
                       onChange={handleInputChange}
                       className="input"
-                      disabled={coursesLoading}
                     >
-                      <option value="">Select a course</option>
-                      {coursesLoading ? (
-                        <option value="" disabled>
-                          Loading courses...
+                      <option value="">Select Semester</option>
+                      {semesterOptions.map((sem) => (
+                        <option key={sem} value={sem}>
+                          {sem}
                         </option>
-                      ) : (
-                        courses.map((course) => (
-                          <option key={course._id} value={course.name}>
-                            {course.name}{" "}
-                            {/* Now shows only: "Computer Science" */}
-                          </option>
-                        ))
-                      )}
+                      ))}
                     </select>
-                    {courses.length === 0 && !coursesLoading && (
-                      <p className="text-xs text-yellow-600 mt-1">
-                        No courses available. Please create courses first in
-                        Course Management.
-                      </p>
-                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Department
+                      Department *
                     </label>
-                    <input
-                      type="text"
+                    <select
                       name="department"
+                      required
                       value={newStudent.department}
                       onChange={handleInputChange}
                       className="input"
-                      placeholder="e.g., Computer Science"
-                    />
+                    >
+                      <option value="">Select Department</option>
+                      {departments.map((dept) => (
+                        <option key={dept._id} value={dept._id}>
+                          {dept.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -1385,7 +1398,7 @@ const StudentManagement = () => {
                     Academic Year
                   </th>
                   <th className="text-left py-3 px-2 sm:px-4 font-medium text-gray-900 dark:text-white text-sm sm:text-base hidden lg:table-cell">
-                    Course
+                    Semester
                   </th>
                   <th className="text-left py-3 px-2 sm:px-4 font-medium text-gray-900 dark:text-white text-sm sm:text-base hidden lg:table-cell">
                     Department
@@ -1416,10 +1429,10 @@ const StudentManagement = () => {
                       {student.grade}
                     </td>
                     <td className="py-3 px-2 sm:px-4 text-gray-900 dark:text-white hidden lg:table-cell">
-                      {student.course || "-"}
+                      {student.semester || "-"}
                     </td>
                     <td className="py-3 px-2 sm:px-4 text-gray-900 dark:text-white hidden lg:table-cell">
-                      {student.department || "-"}
+                      {student.department?.name || student.department || "-"}
                     </td>
                     <td className="py-3 px-2 sm:px-4">
                       <div className="flex space-x-1 sm:space-x-2">

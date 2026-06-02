@@ -29,12 +29,11 @@ router.post(
     body("grade")
       .isIn([
         "Remedial",
-        "1st Year Degree",
-        "2nd Year Degree",
-        "3rd Year Degree",
-        "4th Year Degree",
-        "5th Year Degree",
-        "1st-3rd Year Diploma",
+        "1st Year",
+        "2nd Year",
+        "3rd Year",
+        "4th Year",
+        "5th Year",
       ])
       .withMessage("Invalid grade"),
     body("parentName").trim().notEmpty().withMessage("Parent name is required"),
@@ -42,6 +41,9 @@ router.post(
       .trim()
       .notEmpty()
       .withMessage("Parent contact is required"),
+    body("semester")
+      .isIn(["1st Semester", "2nd Semester"])
+      .withMessage("Invalid semester"),
     body("emergencyContact").optional({ checkFalsy: true }).trim(),
     body("dateOfBirth")
       .optional({ checkFalsy: true })
@@ -73,6 +75,7 @@ router.post(
         parentContact,
         address,
         emergencyContact,
+        semester,
         course,
         department,
       } = req.body;
@@ -114,17 +117,14 @@ router.post(
         user: studentUser._id,
         name: name.trim(),
         grade,
-        dateOfBirth: dateOfBirth
-          ? new Date(dateOfBirth)
-          : new Date("2000-01-01"),
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : new Date("2000-01-01"),
         parentName: parentName.trim(),
         parentContact: parentContact.trim(),
         address: address || {},
-        emergencyContact: emergencyContact
-          ? emergencyContact.trim()
-          : parentContact.trim(),
+        emergencyContact: emergencyContact ? emergencyContact.trim() : parentContact.trim(),
+        semester,
         course: course ? course.trim() : "",
-        department: department ? department.trim() : "",
+        department: department || null,
       });
 
       await student.populate("user", "name email");
@@ -249,6 +249,7 @@ router.get("/", auth, authorize("admin", "teacher"), async (req, res) => {
 
     const students = await Student.find(query)
       .populate("user", "name email")
+      .populate("department", "name")
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
@@ -279,10 +280,9 @@ router.get("/", auth, authorize("admin", "teacher"), async (req, res) => {
 // @access  Private
 router.get("/:id", auth, async (req, res) => {
   try {
-    const student = await Student.findById(req.params.id).populate(
-      "user",
-      "name email"
-    );
+    const student = await Student.findById(req.params.id)
+      .populate("user", "name email")
+      .populate("department", "name");
 
     if (!student) {
       return res.status(404).json({
@@ -326,13 +326,18 @@ router.post(
     body("grade")
       .isIn([
         "Remedial",
-        "1st Year Degree",
-        "2nd Year Degree",
-        "3rd Year Degree",
+        "1st Year",
+        "2nd Year",
+        "3rd Year",
+        "4th Year",
+        "5th Year",
       ])
       .withMessage("Invalid grade"),
     body("parentName").notEmpty().withMessage("Parent name is required"),
     body("parentContact").notEmpty().withMessage("Parent contact is required"),
+    body("semester")
+      .isIn(["1st Semester", "2nd Semester"])
+      .withMessage("Invalid semester"),
   ],
   async (req, res) => {
     try {
@@ -432,4 +437,5 @@ router.delete("/:id", auth, authorize("admin"), async (req, res) => {
     });
   }
 });
+
 module.exports = router;
