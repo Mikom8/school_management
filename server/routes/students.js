@@ -216,6 +216,7 @@ router.get("/available-courses", auth, authorize("admin"), async (req, res) => {
 // @access  Private (Admin, Teacher)
 router.get("/", auth, authorize("admin", "teacher"), async (req, res) => {
   try {
+    const isPaginated = req.query.page && req.query.limit;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
@@ -227,43 +228,73 @@ router.get("/", auth, authorize("admin", "teacher"), async (req, res) => {
         return res.json({
           success: true,
           data: [],
-          pagination: { page, limit, total: 0, pages: 0 },
+          pagination: { page, limit: isPaginated ? limit : 0, total: 0, pages: 0 },
         });
       }
       
       const enrolledStudentIds = [];
-      const courseNames = [];
+      const orConditions = [];
       
       teacherCourses.forEach(c => {
-        if (c.enrolledStudents) enrolledStudentIds.push(...c.enrolledStudents);
-        if (c.name) courseNames.push(new RegExp("^" + c.name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + "$", "i"));
+        if (c.enrolledStudents && c.enrolledStudents.length > 0) {
+          enrolledStudentIds.push(...c.enrolledStudents);
+        }
+        if (c.department && c.year && c.semester) {
+          orConditions.push({
+            department: c.department,
+            grade: c.year,
+            semester: c.semester,
+          });
+        }
+        if (c.name) {
+          orConditions.push({
+            course: new RegExp("^" + c.name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + "$", "i")
+          });
+        }
       });
       
-      query = {
-        $or: [
-          { _id: { $in: enrolledStudentIds } },
-          { course: { $in: courseNames } }
-        ]
-      };
+      if (enrolledStudentIds.length > 0) {
+        orConditions.push({ _id: { $in: enrolledStudentIds } });
+      }
+      
+      if (orConditions.length > 0) {
+        query = { $or: orConditions };
+      } else {
+        return res.json({
+          success: true,
+          data: [],
+          pagination: { page, limit: isPaginated ? limit : 0, total: 0, pages: 0 },
+        });
+      }
     }
 
-    const students = await Student.find(query)
-      .populate("user", "name email")
-      .populate("department", "name")
-      .skip(skip)
-      .limit(limit)
-      .sort({ createdAt: -1 });
+    let students;
+    let total;
 
-    const total = await Student.countDocuments(query);
+    if (isPaginated) {
+      students = await Student.find(query)
+        .populate("user", "name email")
+        .populate("department", "name")
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 });
+      total = await Student.countDocuments(query);
+    } else {
+      students = await Student.find(query)
+        .populate("user", "name email")
+        .populate("department", "name")
+        .sort({ createdAt: -1 });
+      total = students.length;
+    }
 
     res.json({
       success: true,
       data: students,
       pagination: {
         page,
-        limit,
+        limit: isPaginated ? limit : total,
         total,
-        pages: Math.ceil(total / limit),
+        pages: isPaginated ? Math.ceil(total / limit) : 1,
       },
     });
   } catch (error) {

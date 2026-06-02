@@ -882,7 +882,6 @@ const CourseManagement = () => {
                     {dept.name}
                   </option>
                 ))}
-                <option value="unassigned">Unassigned</option>
               </select>
             </div>
           )}
@@ -904,16 +903,6 @@ const CourseManagement = () => {
                 <span>Create Course</span>
               </button>
             </>
-          )}
-
-          {user?.role === "teacher" && (
-            <button
-              onClick={handleCreateNew}
-              className="btn btn-primary flex items-center space-x-2 cursor-pointer"
-            >
-              <Plus size={18} />
-              <span>Create Course</span>
-            </button>
           )}
         </div>
       </div>
