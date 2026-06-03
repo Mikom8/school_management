@@ -46,7 +46,10 @@ const TeacherGrades = () => {
       const coursesResponse = await axios.get("/courses/teacher-courses");
       const teacherCourses = coursesResponse.data.data || [];
 
+      console.log("Teacher's courses:", teacherCourses);
+
       if (teacherCourses.length === 0) {
+        console.log("No courses assigned to teacher");
         setStudents([]);
         setLoading(false);
         return;
@@ -56,16 +59,46 @@ const TeacherGrades = () => {
       const studentsResponse = await axios.get("/students");
       const allStudents = studentsResponse.data.data || [];
 
+      console.log("All students:", allStudents.length);
+
       // Filter students enrolled in teacher's courses
       const enrolledStudents = [];
 
       for (const course of teacherCourses) {
-        // Find students whose course name matches this course
-        const courseStudents = allStudents.filter(
-          (student) =>
-            student.course &&
-            student.course.toLowerCase() === course.name.toLowerCase(),
-        );
+        console.log(`Checking course: ${course.name} (${course.code})`);
+        console.log(`Course dept: ${course.department?._id || course.department}, year: ${course.year}, semester: ${course.semester}`);
+        
+        // Find students who match this course by:
+        // 1. Course string match (name or code)
+        // 2. Department + Year + Semester match
+        const courseStudents = allStudents.filter((student) => {
+          // Method 1: Direct course name/code match
+          if (student.course) {
+            const studentCourse = student.course.toLowerCase().trim();
+            const teacherCourseName = course.name.toLowerCase().trim();
+            const teacherCourseCode = course.code.toLowerCase().trim();
+            
+            if (studentCourse === teacherCourseName || studentCourse === teacherCourseCode) {
+              return true;
+            }
+          }
+          
+          // Method 2: Match by department, year (grade), and semester
+          if (course.department && course.year && course.semester) {
+            const deptMatch = student.department?._id === course.department?._id || 
+                             student.department?._id === course.department ||
+                             student.department === course.department?._id ||
+                             student.department === course.department;
+            const yearMatch = student.grade === course.year;
+            const semesterMatch = student.semester === course.semester;
+            
+            return deptMatch && yearMatch && semesterMatch;
+          }
+          
+          return false;
+        });
+
+        console.log(`Found ${courseStudents.length} students for course ${course.name}`);
 
         for (const student of courseStudents) {
           // Check if student already added
@@ -96,6 +129,7 @@ const TeacherGrades = () => {
               });
             } catch (error) {
               // No grades yet for this student
+              console.log(`No grades for student ${student.user?.name} in ${course.name}`);
               enrolledStudents.push({
                 student: student,
                 user: student.user,
@@ -107,6 +141,7 @@ const TeacherGrades = () => {
         }
       }
 
+      console.log("Total enrolled students:", enrolledStudents.length);
       setStudents(enrolledStudents);
     } catch (error) {
       console.error("Error fetching students:", error);
