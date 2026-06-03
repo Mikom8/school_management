@@ -142,15 +142,20 @@ const TeacherGrades = () => {
   };
 
   // Filter students based on search
-  const filteredStudents = students.filter((item) => {
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      item.student.studentId.toLowerCase().includes(searchLower) ||
-      item.user.name.toLowerCase().includes(searchLower) ||
-      item.course.name.toLowerCase().includes(searchLower) ||
-      item.course.code.toLowerCase().includes(searchLower)
-    );
-  });
+  const filteredStudents = students
+    .filter((item) => {
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        item.student.studentId.toLowerCase().includes(searchLower) ||
+        item.user.name.toLowerCase().includes(searchLower) ||
+        item.course.name.toLowerCase().includes(searchLower) ||
+        item.course.code.toLowerCase().includes(searchLower)
+      );
+    })
+    .sort((a, b) => {
+      // Sort alphabetically by student name (A-Z) - teacher view only
+      return a.user.name.localeCompare(b.user.name);
+    });
 
   if (loading) {
     return <SkeletonLoading />;

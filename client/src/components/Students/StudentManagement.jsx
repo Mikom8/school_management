@@ -156,20 +156,31 @@ const StudentManagement = () => {
     }
   };
 
-  const filteredStudents = students.filter((student) => {
-    // department may be a populated object {_id, name} or a plain string
-    const deptName =
-      typeof student.department === "object"
-        ? student.department?.name || ""
-        : student.department || "";
-    const matchesSearch =
-      student.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.studentId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.course?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      deptName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesGrade = !filterGrade || student.grade === filterGrade;
-    return matchesSearch && matchesGrade;
-  });
+  const filteredStudents = students
+    .filter((student) => {
+      // department may be a populated object {_id, name} or a plain string
+      const deptName =
+        typeof student.department === "object"
+          ? student.department?.name || ""
+          : student.department || "";
+      const matchesSearch =
+        student.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.studentId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.course?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        deptName.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesGrade = !filterGrade || student.grade === filterGrade;
+      return matchesSearch && matchesGrade;
+    })
+    .sort((a, b) => {
+      // Sort alphabetically by student name (A-Z) only for teachers
+      if (user?.role === "teacher") {
+        const nameA = a.user?.name || "";
+        const nameB = b.user?.name || "";
+        return nameA.localeCompare(nameB);
+      }
+      // For admin, keep original order (or you can sort by student ID, creation date, etc.)
+      return 0;
+    });
 
   // fetch courses
   const fetchAvailableCourses = async () => {
