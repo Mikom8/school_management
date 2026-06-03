@@ -1,4 +1,3 @@
-// src/components/student/GradeReport.jsx
 import React, { useState, useEffect } from "react";
 import {
   FileText,
@@ -25,7 +24,6 @@ const GradeReport = () => {
     fetchGradeReport();
   }, []);
 
-  // In GradeReport.jsx
   const fetchGradeReport = async () => {
     try {
       setLoading(true);
@@ -60,9 +58,8 @@ const GradeReport = () => {
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `grade_report_${studentInfo?.studentId}_${
-      new Date().toISOString().split("T")[0]
-    }.json`;
+    link.download = `grade_report_${studentInfo?.studentId}_${new Date().toISOString().split("T")[0]
+      }.json`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -79,6 +76,7 @@ const GradeReport = () => {
 
   const getGradeColor = (grade) => {
     switch (grade) {
+      case "A+":
       case "A":
       case "A-":
         return "text-green-600 bg-green-50 dark:bg-green-900/20";
@@ -90,11 +88,12 @@ const GradeReport = () => {
       case "C":
       case "C-":
         return "text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20";
-      case "D+":
       case "D":
         return "text-orange-600 bg-orange-50 dark:bg-orange-900/20";
       case "F":
         return "text-red-600 bg-red-50 dark:bg-red-900/20";
+      case "NG":
+        return "text-gray-600 bg-gray-50 dark:bg-gray-900/20";
       default:
         return "text-gray-600 bg-gray-50 dark:bg-gray-900/20";
     }
@@ -102,6 +101,7 @@ const GradeReport = () => {
 
   const calculateSemesterGPA = (semesterGrades) => {
     const gradePoints = {
+      "A+": 4.0,
       A: 4.0,
       "A-": 3.7,
       "B+": 3.3,
@@ -110,15 +110,18 @@ const GradeReport = () => {
       "C+": 2.3,
       C: 2.0,
       "C-": 1.7,
-      "D+": 1.3,
       D: 1.0,
       F: 0.0,
+      NG: 0.0,
     };
 
     let totalPoints = 0;
     let totalCredits = 0;
 
     semesterGrades.forEach((grade) => {
+      // Skip NG grades in GPA calculation
+      if (grade.grade === "NG") return;
+
       const credits = grade.course?.credits || 0;
       const points = gradePoints[grade.grade] || 0;
       totalPoints += points * credits;
@@ -310,16 +313,13 @@ const GradeReport = () => {
                   <thead>
                     <tr className="border-b border-gray-200 dark:border-gray-600">
                       <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">
-                        Course Code
-                      </th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">
                         Course Name
                       </th>
                       <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">
                         Credits
                       </th>
                       <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">
-                        Grade
+                        Grade / 100%
                       </th>
                       <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">
                         Instructor
@@ -335,9 +335,7 @@ const GradeReport = () => {
                         key={grade._id}
                         className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                       >
-                        <td className="py-3 px-4 font-mono text-sm font-medium">
-                          {grade.course?.code}
-                        </td>
+
                         <td className="py-3 px-4">
                           <div>
                             <div className="font-medium text-gray-900 dark:text-white">
@@ -345,25 +343,32 @@ const GradeReport = () => {
                             </div>
                             {grade.comments && (
                               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                {grade.comments}
+                                Comment: <b>{grade.comments}</b>
                               </div>
                             )}
                           </div>
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
                           {grade.course?.credits || 0}
                         </td>
                         <td className="py-3 px-4">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getGradeColor(
-                              grade.grade,
-                            )}`}
-                          >
-                            {grade.grade}
-                          </span>
+                          <div>
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getGradeColor(
+                                grade.grade,
+                              )}`}
+                            >
+                              {grade.grade}
+                            </span>
+                            {grade.percentage !== undefined && (
+                              <span className="ml-2 text-sm text-white">
+                                ({grade.percentage})
+                              </span>
+                            )}
+                          </div>
                         </td>
-                        <td className="py-3 px-4 text-sm">
-                          {grade.teacher?.name || "N/A"}
+                        <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">
+                          {grade.course?.teacher?.name || "N/A"}
                         </td>
                         <td className="py-3 px-4 text-sm text-gray-500 dark:text-gray-400">
                           {new Date(grade.gradedAt).toLocaleDateString()}
@@ -391,69 +396,6 @@ const GradeReport = () => {
           </p>
         </div>
       )}
-
-      {/* Grade Legend */}
-      <div className="card">
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-          Grade Scale
-        </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-          {[
-            {
-              grade: "A (4.0)",
-              color:
-                "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300",
-            },
-            {
-              grade: "A- (3.7)",
-              color:
-                "bg-green-50 text-green-700 dark:bg-green-900/10 dark:text-green-200",
-            },
-            {
-              grade: "B+ (3.3)",
-              color:
-                "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300",
-            },
-            {
-              grade: "B (3.0)",
-              color:
-                "bg-blue-50 text-blue-700 dark:bg-blue-900/10 dark:text-blue-200",
-            },
-            {
-              grade: "C+ (2.3)",
-              color:
-                "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300",
-            },
-            {
-              grade: "C (2.0)",
-              color:
-                "bg-yellow-50 text-yellow-700 dark:bg-yellow-900/10 dark:text-yellow-200",
-            },
-            {
-              grade: "D+ (1.3)",
-              color:
-                "bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300",
-            },
-            {
-              grade: "D (1.0)",
-              color:
-                "bg-orange-50 text-orange-700 dark:bg-orange-900/10 dark:text-orange-200",
-            },
-            {
-              grade: "F (0.0)",
-              color:
-                "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300",
-            },
-          ].map((item, index) => (
-            <div
-              key={index}
-              className={`text-center py-2 px-3 rounded-lg text-sm font-medium ${item.color}`}
-            >
-              {item.grade}
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 };

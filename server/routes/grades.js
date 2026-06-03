@@ -166,8 +166,12 @@ router.post(
     authorize("teacher", "admin"),
     body("studentId").notEmpty().withMessage("Student ID is required"),
     body("courseId").notEmpty().withMessage("Course ID is required"),
+    body("percentage")
+      .isFloat({ min: 0, max: 100 })
+      .withMessage("Percentage must be between 0 and 100"),
     body("grade")
-      .isIn(["A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D+", "D", "F"])
+      .optional()
+      .isIn(["A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D", "F", "NG"])
       .withMessage("Invalid grade"),
     body("semester").notEmpty().withMessage("Semester is required"),
   ],
@@ -182,7 +186,7 @@ router.post(
         });
       }
 
-      const { studentId, courseId, grade, semester, comments } = req.body;
+      const { studentId, courseId, percentage, grade, semester, comments } = req.body;
 
       // Verify student exists
       const student = await Student.findOne({ studentId }).populate("user");
@@ -214,6 +218,13 @@ router.post(
         });
       }
 
+      // Calculate letter grade from percentage if not provided
+      let finalGrade = grade;
+      if (!finalGrade) {
+        const gradeInfo = Grade.calculateLetterGrade(percentage);
+        finalGrade = gradeInfo.grade;
+      }
+
       // Check if existing grade exists
       const existingGrade = await Grade.findOne({
         student: student._id,
@@ -227,7 +238,8 @@ router.post(
         result = await Grade.findByIdAndUpdate(
           existingGrade._id,
           {
-            grade,
+            percentage,
+            grade: finalGrade,
             comments,
             gradedBy: req.user._id,
             gradedAt: new Date(),
@@ -239,7 +251,8 @@ router.post(
         result = await Grade.create({
           student: student._id,
           course: courseId,
-          grade,
+          percentage,
+          grade: finalGrade,
           semester,
           comments,
           gradedBy: req.user._id,
@@ -324,6 +337,7 @@ router.get("/", auth, authorize("admin"), async (req, res) => {
 // Helper function to calculate GPA
 const calculateGPA = (grades) => {
   const gradePoints = {
+    "A+": 4.0,
     A: 4.0,
     "A-": 3.7,
     "B+": 3.3,
@@ -332,15 +346,18 @@ const calculateGPA = (grades) => {
     "C+": 2.3,
     C: 2.0,
     "C-": 1.7,
-    "D+": 1.3,
     D: 1.0,
     F: 0.0,
+    NG: 0.0, // NG (No Grade) doesn't count toward GPA
   };
 
   let totalPoints = 0;
   let totalCredits = 0;
 
   grades.forEach((grade) => {
+    // Skip NG grades in GPA calculation
+    if (grade.grade === "NG") return;
+    
     const credits = grade.course?.credits || 0;
     const points = gradePoints[grade.grade] || 0;
     totalPoints += points * credits;

@@ -46,10 +46,7 @@ const TeacherGrades = () => {
       const coursesResponse = await axios.get("/courses/teacher-courses");
       const teacherCourses = coursesResponse.data.data || [];
 
-      console.log("Teacher's courses:", teacherCourses);
-
       if (teacherCourses.length === 0) {
-        console.log("No courses assigned to teacher");
         setStudents([]);
         setLoading(false);
         return;
@@ -59,15 +56,10 @@ const TeacherGrades = () => {
       const studentsResponse = await axios.get("/students");
       const allStudents = studentsResponse.data.data || [];
 
-      console.log("All students:", allStudents.length);
-
       // Filter students enrolled in teacher's courses
       const enrolledStudents = [];
 
       for (const course of teacherCourses) {
-        console.log(`Checking course: ${course.name} (${course.code})`);
-        console.log(`Course dept: ${course.department?._id || course.department}, year: ${course.year}, semester: ${course.semester}`);
-        
         // Find students who match this course by:
         // 1. Course string match (name or code)
         // 2. Department + Year + Semester match
@@ -77,28 +69,26 @@ const TeacherGrades = () => {
             const studentCourse = student.course.toLowerCase().trim();
             const teacherCourseName = course.name.toLowerCase().trim();
             const teacherCourseCode = course.code.toLowerCase().trim();
-            
+
             if (studentCourse === teacherCourseName || studentCourse === teacherCourseCode) {
               return true;
             }
           }
-          
+
           // Method 2: Match by department, year (grade), and semester
           if (course.department && course.year && course.semester) {
-            const deptMatch = student.department?._id === course.department?._id || 
-                             student.department?._id === course.department ||
-                             student.department === course.department?._id ||
-                             student.department === course.department;
+            const deptMatch = student.department?._id === course.department?._id ||
+              student.department?._id === course.department ||
+              student.department === course.department?._id ||
+              student.department === course.department;
             const yearMatch = student.grade === course.year;
             const semesterMatch = student.semester === course.semester;
-            
+
             return deptMatch && yearMatch && semesterMatch;
           }
-          
+
           return false;
         });
-
-        console.log(`Found ${courseStudents.length} students for course ${course.name}`);
 
         for (const student of courseStudents) {
           // Check if student already added
@@ -129,7 +119,6 @@ const TeacherGrades = () => {
               });
             } catch (error) {
               // No grades yet for this student
-              console.log(`No grades for student ${student.user?.name} in ${course.name}`);
               enrolledStudents.push({
                 student: student,
                 user: student.user,
@@ -141,7 +130,6 @@ const TeacherGrades = () => {
         }
       }
 
-      console.log("Total enrolled students:", enrolledStudents.length);
       setStudents(enrolledStudents);
     } catch (error) {
       console.error("Error fetching students:", error);
@@ -201,11 +189,10 @@ const TeacherGrades = () => {
       {/* Notification */}
       {notification.show && (
         <div
-          className={`fixed top-4 right-4 z-50 max-w-sm ${
-            notification.type === "error"
+          className={`fixed top-4 right-4 z-50 max-w-sm ${notification.type === "error"
               ? "bg-red-100 border-red-400 text-red-700"
               : "bg-green-100 border-green-400 text-green-700"
-          } border px-4 py-3 rounded-lg shadow-lg flex items-start space-x-3`}
+            } border px-4 py-3 rounded-lg shadow-lg flex items-start space-x-3`}
         >
           {notification.type === "error" ? (
             <AlertCircle className="shrink-0 mt-0.5" size={20} />
@@ -298,7 +285,7 @@ const TeacherGrades = () => {
                     Course
                   </th>
                   <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">
-                    Grade
+                    Grade / 100%
                   </th>
                   <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">
                     Semester
@@ -332,22 +319,31 @@ const TeacherGrades = () => {
                     </td>
                     <td className="py-3 px-4">
                       {studentData.grade ? (
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            studentData.grade.grade === "A" ||
-                            studentData.grade.grade === "A-"
-                              ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                              : studentData.grade.grade.startsWith("B")
-                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
-                                : studentData.grade.grade.startsWith("C")
-                                  ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
-                                  : studentData.grade.grade.startsWith("D")
-                                    ? "bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400"
-                                    : "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
-                          }`}
-                        >
-                          {studentData.grade.grade}
-                        </span>
+                        <div>
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${studentData.grade.grade === "A+" ||
+                                studentData.grade.grade === "A" ||
+                                studentData.grade.grade === "A-"
+                                ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                                : studentData.grade.grade.startsWith("B")
+                                  ? "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
+                                  : studentData.grade.grade.startsWith("C")
+                                    ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
+                                    : studentData.grade.grade.startsWith("D")
+                                      ? "bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400"
+                                      : studentData.grade.grade === "NG"
+                                        ? "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400"
+                                        : "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
+                              }`}
+                          >
+                            {studentData.grade.grade}
+                          </span>
+                          {studentData.grade.percentage !== undefined && (
+                            <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
+                              ({studentData.grade.percentage})
+                            </span>
+                          )}
+                        </div>
                       ) : (
                         <span className="text-gray-400 text-sm italic">
                           Not graded
@@ -399,13 +395,15 @@ const TeacherGrades = () => {
 // Grade Edit Modal Component
 const GradeEditModal = ({ studentData, onClose, onSubmit }) => {
   const [gradeData, setGradeData] = useState({
+    percentage: studentData.grade?.percentage || "",
     grade: studentData.grade?.grade || "",
     semester: studentData.grade?.semester || getCurrentSemester(),
     comments: studentData.grade?.comments || "",
   });
 
+  const [autoCalculatedGrade, setAutoCalculatedGrade] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const grades = ["A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D+", "D", "F"];
+  const grades = ["A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D", "F", "NG"];
 
   function getCurrentSemester() {
     const now = new Date();
@@ -414,8 +412,45 @@ const GradeEditModal = ({ studentData, onClose, onSubmit }) => {
     return month >= 7 ? `Fall ${year}` : `Spring ${year}`;
   }
 
+  // Calculate letter grade from percentage
+  const calculateLetterGrade = (percentage) => {
+    const percent = parseFloat(percentage);
+    if (isNaN(percent)) return null;
+
+    if (percent >= 95) return { grade: 'A+', points: 4.0, description: 'Outstanding (rare)' };
+    if (percent >= 85) return { grade: 'A', points: 4.0, description: 'Excellent' };
+    if (percent >= 80) return { grade: 'A-', points: 3.7, description: 'Very Good' };
+    if (percent >= 75) return { grade: 'B+', points: 3.3, description: 'Good' };
+    if (percent >= 70) return { grade: 'B', points: 3.0, description: 'Good' };
+    if (percent >= 65) return { grade: 'B-', points: 2.7, description: 'Above Average' };
+    if (percent >= 60) return { grade: 'C+', points: 2.3, description: 'Satisfactory' };
+    if (percent >= 50) return { grade: 'C', points: 2.0, description: 'Minimum Competency' };
+    if (percent >= 45) return { grade: 'C-', points: 1.7, description: 'Marginal Pass' };
+    if (percent >= 40) return { grade: 'D', points: 1.0, description: 'Poor Performance' };
+    return { grade: 'F', points: 0.0, description: 'Fail' };
+  };
+
+  // Handle percentage change
+  const handlePercentageChange = (e) => {
+    const percentage = e.target.value;
+    setGradeData({ ...gradeData, percentage });
+
+    // Auto-calculate letter grade
+    const calculated = calculateLetterGrade(percentage);
+    setAutoCalculatedGrade(calculated);
+
+    // If user hasn't manually overridden the grade, update it
+    if (!gradeData.grade || calculated) {
+      setGradeData({ ...gradeData, percentage, grade: calculated?.grade || "" });
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!gradeData.percentage || parseFloat(gradeData.percentage) < 0 || parseFloat(gradeData.percentage) > 100) {
+      alert("Please enter a valid percentage between 0 and 100");
+      return;
+    }
     if (!gradeData.grade) {
       alert("Please select a grade");
       return;
@@ -462,7 +497,24 @@ const GradeEditModal = ({ studentData, onClose, onSubmit }) => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Grade *
+                Percentage (0-100) *
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                value={gradeData.percentage}
+                onChange={handlePercentageChange}
+                className="input w-full"
+                placeholder="Enter percentage (0-100)"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Letter Grade *
               </label>
               <select
                 value={gradeData.grade}
@@ -479,6 +531,18 @@ const GradeEditModal = ({ studentData, onClose, onSubmit }) => {
                   </option>
                 ))}
               </select>
+              {autoCalculatedGrade && (
+                <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    <span className="font-semibold">Auto-calculated: {autoCalculatedGrade.grade}</span>
+                    <br />
+                    <span className="text-xs">{autoCalculatedGrade.description} ({autoCalculatedGrade.points} GPA)</span>
+                  </p>
+                </div>
+              )}
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Grade is auto-calculated but can be manually changed
+              </p>
             </div>
 
             <div>

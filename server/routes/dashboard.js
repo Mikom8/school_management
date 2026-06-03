@@ -30,25 +30,42 @@ router.get("/", auth, cacheMiddleware(300), async (req, res) => {
       };
     } else if (userRole === "teacher") {
       // Teacher dashboard stats
-      const teacherCourses = await Course.find({ teacher: req.user._id });
+      const teacherCourses = await Course.find({ teacher: req.user._id })
+        .populate('department', '_id name');
       
       let studentsCount = 0;
       if (teacherCourses.length > 0) {
-        const enrolledStudentIds = [];
-        const courseNames = [];
+        const uniqueStudentIds = new Set();
         
-        teacherCourses.forEach(c => {
-          if (c.enrolledStudents) enrolledStudentIds.push(...c.enrolledStudents);
-          if (c.name) courseNames.push(new RegExp("^" + c.name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + "$", "i"));
-        });
+        for (const course of teacherCourses) {
+          // Method 1: Match by course string (name or code)
+          const courseNameRegex = new RegExp("^" + course.name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + "$", "i");
+          const courseCodeRegex = new RegExp("^" + course.code.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + "$", "i");
+          
+          const query1 = {
+            $or: [
+              { course: courseNameRegex },
+              { course: courseCodeRegex }
+            ]
+          };
+          
+          const students1 = await Student.find(query1).select('_id');
+          students1.forEach(s => uniqueStudentIds.add(s._id.toString()));
+          
+          // Method 2: Match by department + year + semester
+          if (course.department && course.year && course.semester) {
+            const query2 = {
+              department: course.department._id || course.department,
+              grade: course.year,
+              semester: course.semester
+            };
+            
+            const students2 = await Student.find(query2).select('_id');
+            students2.forEach(s => uniqueStudentIds.add(s._id.toString()));
+          }
+        }
         
-        const query = {
-          $or: [
-            { _id: { $in: enrolledStudentIds } },
-            { course: { $in: courseNames } }
-          ]
-        };
-        studentsCount = await Student.countDocuments(query);
+        studentsCount = uniqueStudentIds.size;
       }
 
       dashboardData = {

@@ -666,8 +666,8 @@ const TeacherManagement = () => {
                                   <div
                                     key={course._id}
                                     className={`border rounded-lg transition-colors ${isAssignedToOther
-                                        ? "border-red-200 dark:border-red-900 bg-red-50/30 dark:bg-red-950/10 opacity-70"
-                                        : "border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+                                      ? "border-red-200 dark:border-red-900 bg-red-50/30 dark:bg-red-950/10 opacity-70"
+                                      : "border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
                                       }`}
                                   >
                                     <div className="flex items-center space-x-3 p-3 cursor-pointer">
@@ -857,8 +857,8 @@ const TeacherManagement = () => {
                                   <div
                                     key={course._id}
                                     className={`border rounded-lg transition-colors ${isAssignedToOther
-                                        ? "border-red-200 dark:border-red-900 bg-red-50/30 dark:bg-red-950/10 opacity-70"
-                                        : "border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+                                      ? "border-red-200 dark:border-red-900 bg-red-50/30 dark:bg-red-950/10 opacity-70"
+                                      : "border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
                                       }`}
                                   >
                                     <div className="flex items-center space-x-3 p-3 cursor-pointer">
@@ -1055,8 +1055,7 @@ const TeacherManagement = () => {
 
                   <div className="text-sm text-gray-600 dark:text-gray-400">
                     Member since:
-                    <span className="font-medium">
-                      {new Date(teacher.createdAt).toLocaleDateString()}
+                    <span className="font-medium"> {new Date(teacher.createdAt).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
