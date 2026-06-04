@@ -964,13 +964,10 @@ const Dashboard = () => {
                       {course.name}
                     </h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {course.code} • {course.teacher?.name} •{" "}
+                      {course.teacher?.name} •{" "}
                       {course.schedule?.days?.join(", ")}
                     </p>
                   </div>
-                  <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-sm">
-                    Enrolled
-                  </span>
                 </div>
               ))
             ) : (

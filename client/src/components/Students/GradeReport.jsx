@@ -296,8 +296,7 @@ const GradeReport = () => {
                   </h2>
                   <p className="text-gray-600 dark:text-gray-400 mt-1">
                     Semester GPA:
-                    <span className="font-bold text-blue-600 dark:text-blue-400">
-                      {semesterGPA}
+                    <span className="font-bold text-blue-600 dark:text-blue-400"> {semesterGPA}
                     </span>
                   </p>
                 </div>

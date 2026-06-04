@@ -31,7 +31,7 @@ class ErrorBoundary extends React.Component {
             </p>
             <button
               onClick={() => window.location.reload()}
-              className="btn btn-primary"
+              className="btn btn-primary cursor-pointer"
             >
               Refresh Page
             </button>

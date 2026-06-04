@@ -30,6 +30,7 @@ const CustomPopup = ({
   onConfirm,
   onCancel,
   show,
+  isLoading = false,
   children,
 }) => {
   if (!show) return null;
@@ -85,16 +86,19 @@ const CustomPopup = ({
             {onCancel && (
               <button
                 onClick={onCancel}
-                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-md transition-colors cursor-pointer"
+                disabled={isLoading}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
             )}
             <button
               onClick={onConfirm}
-              className={`px-4 py-2 text-sm font-medium text-white rounded-md transition-colors cursor-pointer ${getButtonColor()}`}
+              disabled={isLoading}
+              className={`px-4 py-2 text-sm font-medium text-white rounded-md transition-colors cursor-pointer flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed ${getButtonColor()}`}
             >
-              {type === "warning" ? "Confirm" : "OK"}
+              {isLoading && <Loader size={16} className="animate-spin" />}
+              <span>{type === "warning" ? "Confirm" : "OK"}</span>
             </button>
           </div>
         </div>
@@ -137,6 +141,7 @@ const TeacherManagement = () => {
     message: "",
     onConfirm: null,
     onCancel: null,
+    isLoading: false,
   });
 
   // Add Teacher Form State
@@ -293,7 +298,10 @@ const TeacherManagement = () => {
       "Delete Teacher",
       `Are you sure you want to delete ${teacher.name}? This will also remove them from all assigned courses.`,
       async () => {
+        // Set loading state
+        setPopup((prev) => ({ ...prev, isLoading: true }));
         setDeletingId(teacher._id);
+        
         try {
           const token = getAuthToken();
 
@@ -319,12 +327,20 @@ const TeacherManagement = () => {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
           });
 
+          // Close popup immediately after success
+          setPopup({ show: false, type: "info", title: "", message: "", onConfirm: null, onCancel: null, isLoading: false });
+          
           fetchTeachers();
           fetchCourses(); // Refresh courses to update assignments
           showToast("Teacher deleted successfully!");
         } catch (error) {
           console.error("Error deleting teacher:", error);
-          showPopup("error", "Error", "Failed to delete teacher");
+          // Close the loading popup first
+          setPopup({ show: false, type: "info", title: "", message: "", onConfirm: null, onCancel: null, isLoading: false });
+          // Then show error
+          setTimeout(() => {
+            showPopup("error", "Error", "Failed to delete teacher");
+          }, 100);
         } finally {
           setDeletingId(null);
         }
@@ -545,6 +561,7 @@ const TeacherManagement = () => {
         onConfirm={popup.onConfirm}
         onCancel={popup.onCancel}
         show={popup.show}
+        isLoading={popup.isLoading}
       />
 
       {/* Add Teacher Modal */}
@@ -741,6 +758,7 @@ const TeacherManagement = () => {
                   Edit Teacher
                 </h2>
                 <button
+                  title="close"
                   onClick={() => setEditingTeacher(null)}
                   className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 cursor-pointer"
                 >

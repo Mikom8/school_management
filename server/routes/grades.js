@@ -167,6 +167,7 @@ router.post(
     body("studentId").notEmpty().withMessage("Student ID is required"),
     body("courseId").notEmpty().withMessage("Course ID is required"),
     body("percentage")
+      .optional()
       .isFloat({ min: 0, max: 100 })
       .withMessage("Percentage must be between 0 and 100"),
     body("grade")
@@ -220,8 +221,14 @@ router.post(
 
       // Calculate letter grade from percentage if not provided
       let finalGrade = grade;
-      if (!finalGrade) {
-        const gradeInfo = Grade.calculateLetterGrade(percentage);
+      let finalPercentage = percentage;
+      
+      // If grade is NG, percentage is optional (set to 0 or null)
+      if (finalGrade === "NG") {
+        finalPercentage = percentage || 0;
+      } else if (!finalGrade && finalPercentage !== undefined && finalPercentage !== null) {
+        // Auto-calculate letter grade from percentage
+        const gradeInfo = Grade.calculateLetterGrade(finalPercentage);
         finalGrade = gradeInfo.grade;
       }
 
@@ -238,7 +245,7 @@ router.post(
         result = await Grade.findByIdAndUpdate(
           existingGrade._id,
           {
-            percentage,
+            percentage: finalPercentage,
             grade: finalGrade,
             comments,
             gradedBy: req.user._id,
@@ -251,7 +258,7 @@ router.post(
         result = await Grade.create({
           student: student._id,
           course: courseId,
-          percentage,
+          percentage: finalPercentage,
           grade: finalGrade,
           semester,
           comments,

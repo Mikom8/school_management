@@ -394,10 +394,25 @@ const TeacherGrades = () => {
 
 // Grade Edit Modal Component
 const GradeEditModal = ({ studentData, onClose, onSubmit }) => {
+  // Helper function to get default semester
+  const getDefaultSemester = () => {
+    // Priority: existing grade semester > course semester > student semester > current semester
+    if (studentData.grade?.semester) {
+      return studentData.grade.semester;
+    }
+    if (studentData.course?.semester) {
+      return studentData.course.semester;
+    }
+    if (studentData.student?.semester) {
+      return studentData.student.semester;
+    }
+    return getCurrentSemester();
+  };
+
   const [gradeData, setGradeData] = useState({
     percentage: studentData.grade?.percentage || "",
     grade: studentData.grade?.grade || "",
-    semester: studentData.grade?.semester || getCurrentSemester(),
+    semester: getDefaultSemester(),
     comments: studentData.grade?.comments || "",
   });
 
@@ -445,18 +460,43 @@ const GradeEditModal = ({ studentData, onClose, onSubmit }) => {
     }
   };
 
+  // Handle grade selection change
+  const handleGradeChange = (e) => {
+    const selectedGrade = e.target.value;
+    setGradeData({ ...gradeData, grade: selectedGrade });
+    
+    // If NG is selected, clear the percentage field
+    if (selectedGrade === "NG") {
+      setGradeData({ ...gradeData, grade: selectedGrade, percentage: "" });
+      setAutoCalculatedGrade(null);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!gradeData.percentage || parseFloat(gradeData.percentage) < 0 || parseFloat(gradeData.percentage) > 100) {
-      alert("Please enter a valid percentage between 0 and 100");
-      return;
+    
+    // Validate based on grade type
+    if (gradeData.grade !== "NG") {
+      if (!gradeData.percentage || parseFloat(gradeData.percentage) < 0 || parseFloat(gradeData.percentage) > 100) {
+        alert("Please enter a valid percentage between 0 and 100");
+        return;
+      }
     }
+    
     if (!gradeData.grade) {
       alert("Please select a grade");
       return;
     }
+    
     setIsSubmitting(true);
-    await onSubmit(studentData, gradeData);
+    
+    // Send data with percentage only if not NG
+    const submitData = {
+      ...gradeData,
+      percentage: gradeData.grade === "NG" ? 0 : gradeData.percentage
+    };
+    
+    await onSubmit(studentData, submitData);
     setIsSubmitting(false);
   };
 
@@ -497,7 +537,7 @@ const GradeEditModal = ({ studentData, onClose, onSubmit }) => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Percentage (0-100) *
+                Percentage (0-100) {gradeData.grade !== "NG" && "*"}
               </label>
               <input
                 type="number"
@@ -508,7 +548,7 @@ const GradeEditModal = ({ studentData, onClose, onSubmit }) => {
                 onChange={handlePercentageChange}
                 className="input w-full"
                 placeholder="Enter percentage (0-100)"
-                required
+                required={gradeData.grade !== "NG"}
               />
             </div>
 
@@ -518,9 +558,7 @@ const GradeEditModal = ({ studentData, onClose, onSubmit }) => {
               </label>
               <select
                 value={gradeData.grade}
-                onChange={(e) =>
-                  setGradeData({ ...gradeData, grade: e.target.value })
-                }
+                onChange={handleGradeChange}
                 className="input w-full"
                 required
               >
@@ -531,7 +569,7 @@ const GradeEditModal = ({ studentData, onClose, onSubmit }) => {
                   </option>
                 ))}
               </select>
-              {autoCalculatedGrade && (
+              {autoCalculatedGrade && gradeData.grade !== "NG" && (
                 <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                   <p className="text-sm text-blue-700 dark:text-blue-300">
                     <span className="font-semibold">Auto-calculated: {autoCalculatedGrade.grade}</span>
@@ -540,9 +578,20 @@ const GradeEditModal = ({ studentData, onClose, onSubmit }) => {
                   </p>
                 </div>
               )}
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Grade is auto-calculated but can be manually changed
-              </p>
+              {gradeData.grade === "NG" && (
+                <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    <span className="font-semibold">No Grade (NG)</span>
+                    <br />
+                    <span className="text-xs">Not counted in GPA calculation</span>
+                  </p>
+                </div>
+              )}
+              {gradeData.grade && gradeData.grade !== "NG" && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Grade is auto-calculated but can be manually changed
+                </p>
+              )}
             </div>
 
             <div>

@@ -543,7 +543,7 @@ const CourseManagement = () => {
 
     showConfirmDialog(
       "Delete Course",
-      `Are you sure you want to delete "${courseToDelete?.name} - ${courseToDelete?.description}"? This action cannot be undone.`,
+      `Are you sure you want to delete "${courseToDelete?.name}"? This action cannot be undone.`,
       async () => {
         setDeletingId(id);
         try {
@@ -744,8 +744,8 @@ const CourseManagement = () => {
       />
       {/* Confirmation Dialog */}
       {confirmDialog.show && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black/80 bg-opacity-50 h-full flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 border dark:border-gray-400 border-blue-500 rounded-lg max-w-md w-full p-6">
             <div className="flex items-center space-x-3 mb-4">
               <div className="shrink-0">
                 <Info className="text-yellow-500" size={24} />
@@ -773,24 +773,22 @@ const CourseManagement = () => {
                     onCancel: () => { },
                   });
                 }}
-                className="btn btn-secondary"
+                className="btn btn-secondary cursor-pointer"
               >
                 Cancel
               </button>
-              <button
-                onClick={() => {
-                  confirmDialog.onConfirm();
-                  setConfirmDialog({
-                    show: false,
-                    title: "",
-                    message: "",
-                    onConfirm: () => { },
-                    onCancel: () => { },
-                  });
-                }}
-                className="btn btn-danger"
-              >
-                Delete
+              <button className="button" type="button" onClick={() => {
+                confirmDialog.onConfirm();
+                setConfirmDialog({
+                  show: false,
+                  title: "",
+                  message: "",
+                  onConfirm: () => { },
+                  onCancel: () => { },
+                });
+              }}>
+                <span className="button__text">Delete</span>
+                <span className="button__icon"><svg className="svg" height={512} viewBox="0 0 512 512" width={512} xmlns="http://www.w3.org/2000/svg"><title></title><path d="M112,112l20,320c.95,18.49,14.4,32,32,32H348c17.67,0,30.87-13.51,32-32l20-320" style={{ fill: 'none', stroke: '#fff', strokeLinecap: 'round', strokeLinejoin: 'round', strokeWidth: '32px' }}></path><line style={{ stroke: '#fff', strokeLinecap: 'round', strokeMiterlimit: 10, strokeWidth: '32px' }} x1={80} x2={432} y1={112} y2={112}></line><path d="M192,112V72h0a23.93,23.93,0,0,1,24-24h80a23.93,23.93,0,0,1,24,24h0v40" style={{ fill: 'none', stroke: '#fff', strokeLinecap: 'round', strokeLinejoin: 'round', strokeWidth: '32px' }}></path><line style={{ fill: 'none', stroke: '#fff', strokeLinecap: 'round', strokeLinejoin: 'round', strokeWidth: '32px' }} x1={256} x2={256} y1={176} y2={400}></line><line style={{ fill: 'none', stroke: '#fff', strokeLinecap: 'round', strokeLinejoin: 'round', strokeWidth: '32px' }} x1={184} x2={192} y1={176} y2={400}></line><line style={{ fill: 'none', stroke: '#fff', strokeLinecap: 'round', strokeLinejoin: 'round', strokeWidth: '32px' }} x1={328} x2={320} y1={176} y2={400}></line></svg></span>
               </button>
             </div>
           </div>
@@ -1136,13 +1134,13 @@ const CourseManagement = () => {
 
       {/* ── Create / Edit Course Modal ── */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="fixed inset-0 bg-black/80 bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 border dark:border-gray-400 border-blue-500 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                 {editingCourse ? "Edit Course" : "Create New Course"}
               </h2>
-              <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+              <button title="close" onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer">
                 <X size={24} />
               </button>
             </div>
