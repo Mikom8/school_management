@@ -5,6 +5,7 @@ import {
   Users,
   Clock,
   BookOpen,
+  NotebookText,
   Edit,
   Trash2,
   Loader,
@@ -861,7 +862,7 @@ const CourseManagement = () => {
             <>
               <button
                 onClick={() => setShowDeptModal(true)}
-                className="btn btn-secondary flex items-center space-x-2"
+                className="btn btn-secondary flex items-center space-x-2 cursor-pointer"
               >
                 <Plus size={16} />
                 <span>Department</span>
@@ -932,9 +933,9 @@ const CourseManagement = () => {
             return (
               <section key={dept.id}>
                 {/* Department Header */}
-                <div className="flex items-center gap-4 mb-5">
-                  <div className={`h-10 w-10 rounded-xl bg-gradient-to-br ${color.bg} flex items-center justify-center shadow-md shrink-0`}>
-                    <BookOpen size={18} className="text-white" />
+                <div className="flex items-center gap-2 mb-5">
+                  <div className={`h-10 w-10 flex items-center justify-center shadow-md shrink-0`}>
+                    <NotebookText size={18} className="text-black dark:text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white truncate">
@@ -960,8 +961,6 @@ const CourseManagement = () => {
                         key={course._id}
                         className={`relative rounded-2xl border overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group ${color.light}`}
                       >
-                        {/* Top accent bar */}
-                        <div className={`h-1.5 w-full bg-gradient-to-r ${color.top}`} />
 
                         <div className="p-5">
                           {/* Course header */}
