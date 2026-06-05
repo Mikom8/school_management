@@ -27,6 +27,7 @@ const Sidebar = ({ isMobileOpen, onMobileClose, onSidebarToggle }) => {
     students: 0,
     teachers: 0,
     courses: 0,
+    departments: 0,
     attendance: 0,
   });
   const [loading, setLoading] = useState(true);
@@ -103,7 +104,7 @@ const Sidebar = ({ isMobileOpen, onMobileClose, onSidebarToggle }) => {
         setStats(response.data);
       } catch (error) {
         console.error("Error fetching stats:", error);
-        setStats({ students: 0, teachers: 0, courses: 0, attendance: 0 });
+        setStats({ students: 0, teachers: 0, courses: 0, departments: 0, attendance: 0 });
       } finally {
         setLoading(false);
       }
@@ -137,24 +138,20 @@ const Sidebar = ({ isMobileOpen, onMobileClose, onSidebarToggle }) => {
       "flex items-center rounded-xl transition-all duration-300 group relative overflow-hidden";
 
     if (isCollapsed) {
-      return `${baseClasses} justify-center p-3 mx-2 ${
-        isActive
+      return `${baseClasses} justify-center p-3 mx-2 ${isActive
           ? "bg-linear-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25"
           : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:scale-105"
-      } ${
-        hoveredItem === itemName
+        } ${hoveredItem === itemName
           ? "ring-2 ring-blue-200 dark:ring-blue-800"
           : ""
-      }`;
+        }`;
     }
 
-    return `${baseClasses} px-4 py-3 ${
-      isActive
+    return `${baseClasses} px-4 py-3 ${isActive
         ? "bg-linear-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25"
         : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:translate-x-2"
-    } ${
-      hoveredItem === itemName ? "ring-2 ring-blue-200 dark:ring-blue-800" : ""
-    }`;
+      } ${hoveredItem === itemName ? "ring-2 ring-blue-200 dark:ring-blue-800" : ""
+      }`;
   };
 
   const sidebarWidth = isCollapsed ? "w-21" : "w-64";
@@ -172,10 +169,9 @@ const Sidebar = ({ isMobileOpen, onMobileClose, onSidebarToggle }) => {
       {/* Sidebar Container */}
       <div
         className={`fixed inset-y-0 left-0 z-40 bg-linear-to-b from-white to-gray-50/80 dark:from-gray-900 dark:to-gray-800/80 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-700/50 transform transition-all duration-500 ease-out overflow-y-auto ${sidebarWidth}
-          ${
-            isMobileOpen
-              ? "translate-x-0"
-              : "-translate-x-full lg:translate-x-0"
+          ${isMobileOpen
+            ? "translate-x-0"
+            : "-translate-x-full lg:translate-x-0"
           }
           shadow-xl dark:shadow-2xl
         `}
@@ -202,9 +198,8 @@ const Sidebar = ({ isMobileOpen, onMobileClose, onSidebarToggle }) => {
           {/* Modern Collapse Toggle */}
           <button
             onClick={handleCollapseToggle}
-            className={`hidden md:block p-2 rounded-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:scale-110 transition-all duration-300 shadow-sm cursor-pointer ${
-              isCollapsed ? "mx-auto" : ""
-            }`}
+            className={`hidden md:block p-2 rounded-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:scale-110 transition-all duration-300 shadow-sm cursor-pointer ${isCollapsed ? "mx-auto" : ""
+              }`}
           >
             {isCollapsed ? (
               <ChevronRight size={18} className="text-blue-500" />
@@ -234,9 +229,8 @@ const Sidebar = ({ isMobileOpen, onMobileClose, onSidebarToggle }) => {
               >
                 <Icon
                   size={20}
-                  className={`mr-3 shrink-0 transition-transform group-hover:scale-110 ${
-                    isCollapsed ? "ml-2" : ""
-                  }`}
+                  className={`mr-3 shrink-0 transition-transform group-hover:scale-110 ${isCollapsed ? "ml-2" : ""
+                    }`}
                 />
 
                 {!isCollapsed && (
@@ -259,9 +253,8 @@ const Sidebar = ({ isMobileOpen, onMobileClose, onSidebarToggle }) => {
               {/* Dropdown Header */}
               <button
                 onClick={toggleStatsDropdown}
-                className={`flex items-center justify-between w-full text-left transition-colors text-gray-700 dark:text-gray-300 ${
-                  isStatsOpen ? "mb-2" : ""
-                } cursor-pointer`}
+                className={`flex items-center justify-between w-full text-left transition-colors text-gray-700 dark:text-gray-300 ${isStatsOpen ? "mb-2" : ""
+                  } cursor-pointer`}
               >
                 <div className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                   Quick Stats
@@ -275,15 +268,14 @@ const Sidebar = ({ isMobileOpen, onMobileClose, onSidebarToggle }) => {
 
               {/* Dropdown Content */}
               <div
-                className={`transition-all duration-300 ease-in-out ${
-                  isStatsOpen ? "max-h-48 opacity-100" : "max-h-0 opacity-0"
-                } overflow-hidden`}
+                className={`transition-all duration-300 ease-in-out ${isStatsOpen ? "max-h-48 opacity-100" : "max-h-0 opacity-0"
+                  } overflow-hidden`}
               >
                 <div className="space-y-3 pt-1">
                   {[
                     { label: "Students", key: "students" },
                     { label: "Faculty", key: "teachers" },
-                    { label: "Courses", key: "courses" },
+                    { label: "Department", key: "departments" },
                   ].map(({ label, key }) => (
                     <div
                       key={key}
