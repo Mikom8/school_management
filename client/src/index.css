@@ -109,3 +109,7 @@ body {
 .button:active {
   border: 1px solid #b20000;
 }
+
+.inputply {
+  padding-left: 45px;
+}

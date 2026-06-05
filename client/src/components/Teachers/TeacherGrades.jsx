@@ -229,14 +229,17 @@ const TeacherGrades = () => {
       <div className="card">
         <div className="flex items-center gap-4">
           <div className="flex-1 relative">
-            <Search
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+            <label htmlFor="searchGrade">
+              <Search
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 cursor-text"
               size={20}
             />
+            </label>
             <input
               type="text"
+              id="searchGrade"
               placeholder="Search by student name, ID, or course..."
-              className="input p-50 w-full"
+              className="input w-full inputply"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />

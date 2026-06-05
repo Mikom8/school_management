@@ -107,7 +107,7 @@ router.get("/teacher-grades", auth, authorize("teacher"), async (req, res) => {
           select: "name email",
         },
       })
-      .populate("course", "name code")
+      .populate("course", "name code year semester credits")
       .sort({ "student.user.name": 1, semester: -1 });
 
     // Group by course and student for easier display

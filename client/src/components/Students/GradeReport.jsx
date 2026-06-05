@@ -188,14 +188,14 @@ const GradeReport = () => {
         <div className="flex space-x-3 mt-4 lg:mt-0">
           <button
             onClick={downloadGradeReport}
-            className="btn btn-secondary flex items-center space-x-2"
+            className="btn btn-secondary flex items-center space-x-2 cursor-pointer"
           >
             <Download size={18} />
             <span>Download JSON</span>
           </button>
           <button
             onClick={downloadPDF}
-            className="btn btn-primary flex items-center space-x-2"
+            className="btn btn-primary flex items-center space-x-2 cursor-pointer"
           >
             <FileText size={18} />
             <span>Export PDF</span>
@@ -332,7 +332,7 @@ const GradeReport = () => {
                     {semesterGrades.map((grade, index) => (
                       <tr
                         key={grade._id}
-                        className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                       >
 
                         <td className="py-3 px-4">

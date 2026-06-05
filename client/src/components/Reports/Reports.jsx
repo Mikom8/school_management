@@ -131,8 +131,6 @@ const Reports = () => {
           return;
       }
 
-      console.log("Making request to:", endpoint, "with params:", params);
-
       const response = await apiCall(endpoint, params);
 
       // Format the response based on endpoint and role
@@ -358,14 +356,13 @@ const Reports = () => {
               {user?.role === "teacher" && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Course (Optional)
+                    Course
                   </label>
                   <select
                     value={selectedCourse}
                     onChange={(e) => setSelectedCourse(e.target.value)}
                     className="input"
                   >
-                    <option value="">All My Courses</option>
                     {courses.map((course) => (
                       <option key={course._id} value={course._id}>
                         {course.code} - {course.name}
@@ -638,6 +635,18 @@ const Reports = () => {
                         Students: {courseData.students.length}
                       </p>
                     </div>
+                    {(courseData.course.year || courseData.course.semester) && (
+                      <div className="text-sm text-gray-700 dark:text-gray-300 text-right">
+                        <div className="font-medium">
+                          {courseData.course.year && <span>{courseData.course.year}</span>}
+                          {courseData.course.year && courseData.course.semester && <span>, </span>}
+                          {courseData.course.semester && <span>{courseData.course.semester}</span>}
+                        </div>
+                        <div>
+                          Credits: {courseData.course.credits || 0}
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full">
@@ -661,7 +670,7 @@ const Reports = () => {
                         {courseData.students.map((studentData) => (
                           <tr
                             key={studentData.student._id}
-                            className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+                            className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
                           >
                             <td className="py-3 px-4 text-gray-900 dark:text-white">
                               {studentData.user.name}
@@ -677,7 +686,7 @@ const Reports = () => {
                                   {studentData.grade.grade}
                                 </span>
                                 {studentData.grade.percentage !== undefined && (
-                                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                                  <span className="text-sm text-gray-600 dark:text-gray-200">
                                     ({studentData.grade.percentage})
                                   </span>
                                 )}
