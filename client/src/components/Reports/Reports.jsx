@@ -17,10 +17,11 @@ const Reports = () => {
   const { user } = useAuth();
   const [reportType, setReportType] = useState("grades");
   const [dateRange, setDateRange] = useState("this_semester");
+  const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
-  const [students, setStudents] = useState([]);
+  const [selectedDepartment, setSelectedDepartment] = useState("");
   const [selectedCourse, setSelectedCourse] = useState("");
-  const [selectedStudent, setSelectedStudent] = useState("");
+  const [selectedYear, setSelectedYear] = useState("");
   const [semester, setSemester] = useState("");
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState(null);
@@ -33,30 +34,52 @@ const Reports = () => {
   };
 
   useEffect(() => {
-    fetchCourses();
-    fetchStudents();
-    setSemester(getCurrentSemester());
-  }, []);
+    fetchDepartments();
+    if (user?.role === "teacher") {
+      fetchTeacherCourses();
+    }
+  }, [user]);
 
-  const fetchCourses = async () => {
+  const fetchDepartments = async () => {
     try {
-      const response = await apiCall("courses");
-      setCourses(response.data.data || []);
+      const response = await apiCall("courses/departments");
+      const allDepartments = response.data.data || [];
+
+      // For teachers, filter to show only departments they're assigned to
+      if (user?.role === "teacher") {
+        // Fetch teacher's courses first to get their departments
+        const coursesResponse = await apiCall("courses/teacher-courses");
+        const teacherCourses = coursesResponse.data.data || [];
+
+        // Get unique department IDs from teacher's courses
+        const teacherDeptIds = new Set(
+          teacherCourses
+            .map(course => course.department?._id || course.department)
+            .filter(Boolean)
+        );
+
+        // Filter departments to only those the teacher teaches in
+        const teacherDepartments = allDepartments.filter(dept =>
+          teacherDeptIds.has(dept._id)
+        );
+
+        setDepartments(teacherDepartments);
+      } else {
+        setDepartments(allDepartments);
+      }
     } catch (error) {
-      console.error("Error fetching courses:", error);
-      // Set empty array to prevent further errors
-      setCourses([]);
+      console.error("Error fetching departments:", error);
+      setDepartments([]);
     }
   };
 
-  const fetchStudents = async () => {
+  const fetchTeacherCourses = async () => {
     try {
-      const response = await apiCall("students");
-      setStudents(response.data.data || []);
+      const response = await apiCall("courses/teacher-courses");
+      setCourses(response.data.data || []);
     } catch (error) {
-      console.error("Error fetching students:", error);
-      // Set empty array to prevent further errors
-      setStudents([]);
+      console.error("Error fetching teacher courses:", error);
+      setCourses([]);
     }
   };
 
@@ -71,7 +94,7 @@ const Reports = () => {
       switch (reportType) {
         case "attendance":
           endpoint = "reports/attendance";
-          if (selectedCourse) params.courseId = selectedCourse;
+          if (selectedDepartment) params.department = selectedDepartment;
           if (dateRange) {
             const dates = getDateRange(dateRange);
             params.startDate = dates.start;
@@ -83,11 +106,8 @@ const Reports = () => {
           // ADMIN: Use the admin grades endpoint
           if (user?.role === "admin") {
             endpoint = "grades";
-            if (selectedCourse) params.courseId = selectedCourse;
-            if (selectedStudent) {
-              const student = students.find((s) => s._id === selectedStudent);
-              if (student) params.studentId = student.studentId;
-            }
+            if (selectedDepartment) params.department = selectedDepartment;
+            if (selectedYear) params.grade = selectedYear;
             if (semester) params.semester = semester;
           }
           // TEACHER: Use teacher grades endpoint
@@ -104,10 +124,7 @@ const Reports = () => {
 
         case "student-performance":
           endpoint = "reports/student-performance";
-          if (selectedStudent) {
-            const student = students.find((s) => s._id === selectedStudent);
-            if (student) params.studentId = student.studentId;
-          }
+          if (selectedYear) params.grade = selectedYear;
           break;
 
         default:
@@ -187,17 +204,16 @@ const Reports = () => {
     return month >= 7 ? `Fall ${year}` : `Spring ${year}`;
   };
 
-  const getSemesterOptions = () => {
-    const currentYear = new Date().getFullYear();
-    const semesters = [];
+  const yearOptions = [
+    "Remedial",
+    "1st Year",
+    "2nd Year",
+    "3rd Year",
+    "4th Year",
+    "5th Year",
+  ];
 
-    for (let year = currentYear - 2; year <= currentYear + 1; year++) {
-      semesters.push(`Spring ${year}`);
-      semesters.push(`Fall ${year}`);
-    }
-
-    return semesters;
-  };
+  const semesterOptions = ["1st Semester", "2nd Semester"];
 
   const downloadReport = (format) => {
     if (!reportData) return;
@@ -207,9 +223,8 @@ const Reports = () => {
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${reportType}_report_${
-      new Date().toISOString().split("T")[0]
-    }.json`;
+    link.download = `${reportType}_report_${new Date().toISOString().split("T")[0]
+      }.json`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -244,6 +259,8 @@ const Reports = () => {
 
   const getGradeColor = (grade) => {
     switch (grade) {
+      case "A+":
+        return "bg-green-100 text-green-800 dark:bg-green-900/80 dark:text-green-300";
       case "A":
       case "A-":
         return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300";
@@ -297,11 +314,10 @@ const Reports = () => {
                     <button
                       key={type.id}
                       onClick={() => setReportType(type.id)}
-                      className={`p-4 border rounded-lg text-left transition-all ${
-                        reportType === type.id
-                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                          : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
-                      }`}
+                      className={`p-4 border rounded-lg text-left transition-all ${reportType === type.id
+                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                        : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
+                        }`}
                     >
                       <Icon size={24} className="mb-2" />
                       <div className="font-medium">{type.name}</div>
@@ -315,8 +331,31 @@ const Reports = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Course Selection - For admin/teacher */}
+              {/* Department Selection - For admin and teacher */}
               {(user?.role === "admin" || user?.role === "teacher") && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Department (Optional)
+                  </label>
+                  <select
+                    value={selectedDepartment}
+                    onChange={(e) => setSelectedDepartment(e.target.value)}
+                    className="input"
+                  >
+                    <option value="">
+                      {user?.role === "teacher" ? "All My Departments" : "All Departments"}
+                    </option>
+                    {departments.map((dept) => (
+                      <option key={dept._id} value={dept._id}>
+                        {dept.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Course Selection - For teacher only */}
+              {user?.role === "teacher" && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Course (Optional)
@@ -326,7 +365,7 @@ const Reports = () => {
                     onChange={(e) => setSelectedCourse(e.target.value)}
                     className="input"
                   >
-                    <option value="">All Courses</option>
+                    <option value="">All My Courses</option>
                     {courses.map((course) => (
                       <option key={course._id} value={course._id}>
                         {course.code} - {course.name}
@@ -336,21 +375,21 @@ const Reports = () => {
                 </div>
               )}
 
-              {/* Student Selection - For admin */}
+              {/* Year Selection - For admin only */}
               {user?.role === "admin" && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Student (Optional)
+                    Year (Optional)
                   </label>
                   <select
-                    value={selectedStudent}
-                    onChange={(e) => setSelectedStudent(e.target.value)}
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(e.target.value)}
                     className="input"
                   >
-                    <option value="">All Students</option>
-                    {students.map((student) => (
-                      <option key={student._id} value={student._id}>
-                        {student.studentId} - {student.name}
+                    <option value="">All Years</option>
+                    {yearOptions.map((year) => (
+                      <option key={year} value={year}>
+                        {year}
                       </option>
                     ))}
                   </select>
@@ -360,24 +399,24 @@ const Reports = () => {
               {/* Semester Selection - For grade reports */}
               {(reportType === "grades" ||
                 reportType === "student-performance") && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Semester
-                  </label>
-                  <select
-                    value={semester}
-                    onChange={(e) => setSemester(e.target.value)}
-                    className="input"
-                  >
-                    <option value="">All Semesters</option>
-                    {getSemesterOptions().map((sem) => (
-                      <option key={sem} value={sem}>
-                        {sem}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Semester
+                    </label>
+                    <select
+                      value={semester}
+                      onChange={(e) => setSemester(e.target.value)}
+                      className="input"
+                    >
+                      <option value="">All Semesters</option>
+                      {semesterOptions.map((sem) => (
+                        <option key={sem} value={sem}>
+                          {sem}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
               {/* Date Range - For attendance reports */}
               {reportType === "attendance" && (
@@ -402,7 +441,7 @@ const Reports = () => {
             <button
               onClick={generateReport}
               disabled={loading}
-              className="btn btn-primary flex items-center space-x-2 disabled:opacity-50"
+              className={`btn btn-primary flex items-center space-x-2 disabled:opacity-50 ${loading ? 'cursor-not-allowed' : 'cursor-pointer'}`}
             >
               {loading ? (
                 <Loader className="animate-spin" size={20} />
@@ -479,20 +518,22 @@ const Reports = () => {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-200 dark:border-gray-600">
-                      <th className="text-left py-3 px-4 font-medium">
+                      <th className="text-left py-3 px-4 font-medium dark:text-white">
                         Student
                       </th>
-                      <th className="text-left py-3 px-4 font-medium">
+                      <th className="text-left py-3 px-4 font-medium dark:text-white">
                         Course
                       </th>
-                      <th className="text-left py-3 px-4 font-medium">Grade</th>
-                      <th className="text-left py-3 px-4 font-medium">
+                      <th className="text-left py-3 px-4 font-medium dark:text-white">
+                        Grade / 100%
+                      </th>
+                      <th className="text-left py-3 px-4 font-medium dark:text-white">
                         Semester
                       </th>
-                      <th className="text-left py-3 px-4 font-medium">
+                      <th className="text-left py-3 px-4 font-medium dark:text-white">
                         Instructor
                       </th>
-                      <th className="text-left py-3 px-4 font-medium">
+                      <th className="text-left py-3 px-4 font-medium dark:text-white">
                         Date Graded
                       </th>
                     </tr>
@@ -504,15 +545,15 @@ const Reports = () => {
                         className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
                       >
                         <td className="py-3 px-4">
-                          <div className="font-medium">
+                          <div className="font-medium dark:text-white">
                             {grade.student?.user?.name}
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
                             {grade.student?.studentId}
                           </div>
                         </td>
                         <td className="py-3 px-4">
-                          <div className="font-medium">
+                          <div className="font-medium dark:text-white">
                             {grade.course?.name}
                           </div>
                           <div className="text-sm text-gray-500">
@@ -525,12 +566,17 @@ const Reports = () => {
                           >
                             {grade.grade}
                           </span>
+                          {grade.percentage !== undefined && (
+                            <span className="ml-2 text-sm dark:text-white">
+                              ({grade.percentage})
+                            </span>
+                          )}
                         </td>
-                        <td className="py-3 px-4 text-sm">{grade.semester}</td>
-                        <td className="py-3 px-4 text-sm">
+                        <td className="py-3 px-4 text-sm dark:text-white">{grade.semester}</td>
+                        <td className="py-3 px-4 text-sm dark:text-white/80">
                           {grade.gradedBy?.name || "N/A"}
                         </td>
-                        <td className="py-3 px-4 text-sm text-gray-500">
+                        <td className="py-3 px-4 text-sm text-gray-500 dark:text-white">
                           {new Date(grade.gradedAt).toLocaleDateString()}
                         </td>
                       </tr>
@@ -568,9 +614,14 @@ const Reports = () => {
       {/* TEACHER GRADES REPORT */}
       {reportData && reportData.type === "teacher-grades" && (
         <div className="card">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-            Course Grades Report
-          </h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              Course Grades Report
+            </h2>
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              Total Courses: {reportData.data.courses?.length || 0}
+            </div>
+          </div>
           <div className="space-y-6">
             {reportData.data.courses?.length > 0 ? (
               reportData.data.courses.map((courseData) => (
@@ -578,21 +629,31 @@ const Reports = () => {
                   key={courseData.course._id}
                   className="border border-gray-200 dark:border-gray-600 rounded-lg p-4"
                 >
-                  <h3 className="text-lg font-medium mb-3">
-                    {courseData.course.code} - {courseData.course.name}
-                  </h3>
+                  <div className="mb-4 flex justify-between items-center">
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                        {courseData.course.code} - {courseData.course.name}
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        Students: {courseData.students.length}
+                      </p>
+                    </div>
+                  </div>
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
                         <tr className="border-b border-gray-200 dark:border-gray-600">
-                          <th className="text-left py-2 px-3 font-medium">
-                            Student
+                          <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">
+                            Name
                           </th>
-                          <th className="text-left py-2 px-3 font-medium">
-                            Grade
+                          <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">
+                            Student ID
                           </th>
-                          <th className="text-left py-2 px-3 font-medium">
-                            Semester
+                          <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">
+                            Grade / 100%
+                          </th>
+                          <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">
+                            Credits
                           </th>
                         </tr>
                       </thead>
@@ -600,25 +661,30 @@ const Reports = () => {
                         {courseData.students.map((studentData) => (
                           <tr
                             key={studentData.student._id}
-                            className="border-b border-gray-100 dark:border-gray-700"
+                            className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
                           >
-                            <td className="py-2 px-3">
-                              <div className="font-medium">
-                                {studentData.user.name}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {studentData.student.studentId}
+                            <td className="py-3 px-4 text-gray-900 dark:text-white">
+                              {studentData.user.name}
+                            </td>
+                            <td className="py-3 px-4 font-mono text-sm text-gray-900 dark:text-white">
+                              {studentData.student.studentId}
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex items-center space-x-2">
+                                <span
+                                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getGradeColor(studentData.grade.grade)}`}
+                                >
+                                  {studentData.grade.grade}
+                                </span>
+                                {studentData.grade.percentage !== undefined && (
+                                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                                    ({studentData.grade.percentage})
+                                  </span>
+                                )}
                               </div>
                             </td>
-                            <td className="py-2 px-3">
-                              <span
-                                className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${getGradeColor(studentData.grade.grade)}`}
-                              >
-                                {studentData.grade.grade}
-                              </span>
-                            </td>
-                            <td className="py-2 px-3 text-sm">
-                              {studentData.grade.semester}
+                            <td className="py-3 px-4 text-gray-900 dark:text-white">
+                              {courseData.course.credits || 0}
                             </td>
                           </tr>
                         ))}
@@ -631,6 +697,9 @@ const Reports = () => {
               <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                 <BookOpen size={48} className="mx-auto mb-4 opacity-50" />
                 <p>No course grades found</p>
+                <p className="text-sm mt-2">
+                  Try adjusting your filter criteria or ensure grades have been submitted
+                </p>
               </div>
             )}
           </div>

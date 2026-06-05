@@ -190,8 +190,8 @@ const TeacherGrades = () => {
       {notification.show && (
         <div
           className={`fixed top-4 right-4 z-50 max-w-sm ${notification.type === "error"
-              ? "bg-red-100 border-red-400 text-red-700"
-              : "bg-green-100 border-green-400 text-green-700"
+            ? "bg-red-100 border-red-400 text-red-700"
+            : "bg-green-100 border-green-400 text-green-700"
             } border px-4 py-3 rounded-lg shadow-lg flex items-start space-x-3`}
         >
           {notification.type === "error" ? (
@@ -236,7 +236,7 @@ const TeacherGrades = () => {
             <input
               type="text"
               placeholder="Search by student name, ID, or course..."
-              className="input pl-10 w-full"
+              className="input p-50 w-full"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -309,10 +309,7 @@ const TeacherGrades = () => {
                     </td>
                     <td className="py-3 px-4 text-gray-900 dark:text-white">
                       <div>
-                        <div className="font-medium">
-                          {studentData.course.code}
-                        </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                        <div className="text-gray-500 dark:text-gray-200">
                           {studentData.course.name}
                         </div>
                       </div>
@@ -322,24 +319,24 @@ const TeacherGrades = () => {
                         <div>
                           <span
                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${studentData.grade.grade === "A+" ||
-                                studentData.grade.grade === "A" ||
-                                studentData.grade.grade === "A-"
-                                ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                                : studentData.grade.grade.startsWith("B")
-                                  ? "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
-                                  : studentData.grade.grade.startsWith("C")
-                                    ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
-                                    : studentData.grade.grade.startsWith("D")
-                                      ? "bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400"
-                                      : studentData.grade.grade === "NG"
-                                        ? "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400"
-                                        : "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
+                              studentData.grade.grade === "A" ||
+                              studentData.grade.grade === "A-"
+                              ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                              : studentData.grade.grade.startsWith("B")
+                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
+                                : studentData.grade.grade.startsWith("C")
+                                  ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
+                                  : studentData.grade.grade.startsWith("D")
+                                    ? "bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400"
+                                    : studentData.grade.grade === "NG"
+                                      ? "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400"
+                                      : "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
                               }`}
                           >
                             {studentData.grade.grade}
                           </span>
                           {studentData.grade.percentage !== undefined && (
-                            <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
+                            <span className="ml-2 text-sm text-gray-600 dark:text-gray-200">
                               ({studentData.grade.percentage})
                             </span>
                           )}
@@ -464,7 +461,7 @@ const GradeEditModal = ({ studentData, onClose, onSubmit }) => {
   const handleGradeChange = (e) => {
     const selectedGrade = e.target.value;
     setGradeData({ ...gradeData, grade: selectedGrade });
-    
+
     // If NG is selected, clear the percentage field
     if (selectedGrade === "NG") {
       setGradeData({ ...gradeData, grade: selectedGrade, percentage: "" });
@@ -474,7 +471,7 @@ const GradeEditModal = ({ studentData, onClose, onSubmit }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validate based on grade type
     if (gradeData.grade !== "NG") {
       if (!gradeData.percentage || parseFloat(gradeData.percentage) < 0 || parseFloat(gradeData.percentage) > 100) {
@@ -482,20 +479,20 @@ const GradeEditModal = ({ studentData, onClose, onSubmit }) => {
         return;
       }
     }
-    
+
     if (!gradeData.grade) {
       alert("Please select a grade");
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     // Send data with percentage only if not NG
     const submitData = {
       ...gradeData,
       percentage: gradeData.grade === "NG" ? 0 : gradeData.percentage
     };
-    
+
     await onSubmit(studentData, submitData);
     setIsSubmitting(false);
   };
