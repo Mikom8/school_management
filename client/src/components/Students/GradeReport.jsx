@@ -360,7 +360,7 @@ const GradeReport = () => {
                               {grade.grade}
                             </span>
                             {grade.percentage !== undefined && (
-                              <span className="ml-2 text-sm text-white">
+                              <span className="ml-2 text-sm dark:text-white">
                                 ({grade.percentage})
                               </span>
                             )}

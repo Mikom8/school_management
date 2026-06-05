@@ -678,13 +678,14 @@ const StudentManagement = () => {
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  Grade Report - {gradeReportData.student.user?.name}
+                <u>{gradeReportData.student.user?.name}</u> <span className="block text-xs">Grade Report</span>
                 </h2>
                 <button
                   onClick={() => {
                     setShowGradeReport(false);
                     setGradeReportData(null);
                   }}
+                  title="close"
                   className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 cursor-pointer"
                 >
                   ✕
@@ -702,19 +703,19 @@ const StudentManagement = () => {
                       {gradeReportData.student.studentId}
                     </p>
                   </div>
-                  <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-                    <p className="text-sm text-green-600 dark:text-green-400">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                    <p className="text-sm text-blue-600 dark:text-blue-400">
                       Academic Year
                     </p>
-                    <p className="text-lg font-bold text-green-800 dark:text-green-200">
+                    <p className="text-lg font-bold text-blue-800 dark:text-blue-200">
                       {gradeReportData.student.grade}
                     </p>
                   </div>
-                  <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
-                    <p className="text-sm text-purple-600 dark:text-purple-400">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                    <p className="text-sm text-blue-600 dark:text-blue-400">
                       Cumulative GPA
                     </p>
-                    <p className="text-lg font-bold text-purple-800 dark:text-purple-200">
+                    <p className="text-lg font-bold text-blue-800 dark:text-blue-200">
                       {gradeReportData.gpa}
                     </p>
                   </div>
@@ -726,19 +727,19 @@ const StudentManagement = () => {
                     <table className="w-full">
                       <thead>
                         <tr className="border-b border-gray-200 dark:border-gray-600">
-                          <th className="text-left py-3 px-4 font-medium">
+                          <th className="text-left py-3 px-4 font-medium dark:text-white">
                             Course
                           </th>
-                          <th className="text-left py-3 px-4 font-medium">
-                            Grade
+                          <th className="text-left py-3 px-4 font-medium dark:text-white">
+                            Grade / 100%
                           </th>
-                          <th className="text-left py-3 px-4 font-medium">
+                          <th className="text-left py-3 px-4 font-medium dark:text-white">
                             Credits
                           </th>
-                          <th className="text-left py-3 px-4 font-medium">
+                          <th className="text-left py-3 px-4 font-medium dark:text-white">
                             Semester
                           </th>
-                          <th className="text-left py-3 px-4 font-medium">
+                          <th className="text-left py-3 px-4 font-medium dark:text-white">
                             Instructor
                           </th>
                         </tr>
@@ -750,10 +751,10 @@ const StudentManagement = () => {
                             className="border-b border-gray-100 dark:border-gray-700"
                           >
                             <td className="py-3 px-4">
-                              <div className="font-medium">
+                              <div className="font-medium dark:text-white">
                                 {grade.course?.name}
                               </div>
-                              <div className="text-sm text-gray-500">
+                              <div className="text-sm text-gray-500 dark:text-white/70">
                                 {grade.course?.code}
                               </div>
                             </td>
@@ -765,15 +766,20 @@ const StudentManagement = () => {
                               >
                                 {grade.grade}
                               </span>
+                              {grade.percentage !== undefined && (
+                              <span className="ml-2 text-sm dark:text-white">
+                                ({grade.percentage})
+                              </span>
+                            )}
                             </td>
-                            <td className="py-3 px-4">
+                            <td className="py-3 px-4 dark:text-white/80">
                               {grade.course?.credits || 0}
                             </td>
-                            <td className="py-3 px-4 text-sm">
+                            <td className="py-3 px-4 text-sm dark:text-white">
                               {grade.semester}
                             </td>
-                            <td className="py-3 px-4 text-sm">
-                              {grade.teacher?.name || "N/A"}
+                            <td className="py-3 px-4 text-sm dark:text-white/80">
+                              {grade.course?.teacher?.name || "N/A"}
                             </td>
                           </tr>
                         ))}

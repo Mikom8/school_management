@@ -313,7 +313,14 @@ router.get("/", auth, authorize("admin"), async (req, res) => {
           select: "name email",
         },
       })
-      .populate("course", "name code")
+      .populate({
+        path: "course",
+        select: "name code credits",
+        populate: {
+          path: "teacher",
+          select: "name",
+        },
+      })
       .populate("gradedBy", "name")
       .limit(limit * 1)
       .skip((page - 1) * limit)
