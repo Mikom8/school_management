@@ -69,6 +69,8 @@ const Dashboard = () => {
   const [students, setStudents] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [myCourses, setMyCourses] = useState([]);
+  const [myCoursesWithCounts, setMyCoursesWithCounts] = useState([]);
+  const [coursesLoading, setCoursesLoading] = useState(false);
   const [myGrades, setMyGrades] = useState({ grades: [], gpa: "0.00" });
   const [upcomingClasses, setUpcomingClasses] = useState([]);
   const [nextClass, setNextClass] = useState(null);
@@ -274,12 +276,45 @@ const Dashboard = () => {
 
   const fetchTeacherCourses = async () => {
     try {
+      setCoursesLoading(true);
       const response = await axios.get("/courses/teacher-courses");
 
       // Handle both response formats
       if (response.data && response.data.success !== false) {
         const courses = response.data.data || response.data || [];
-        setMyCourses(Array.isArray(courses) ? courses : []);
+        const coursesArray = Array.isArray(courses) ? courses : [];
+        setMyCourses(coursesArray);
+
+        // Fetch students to calculate enrollment
+        if (coursesArray.length > 0) {
+          const studentsResponse = await axios.get("/students");
+          const students = studentsResponse.data.data || [];
+
+          // Calculate student count for each course
+          const coursesWithCounts = coursesArray.map(course => {
+            const studentCount = students.filter(student => {
+              const studentDeptId = typeof student.department === "object"
+                ? student.department?._id
+                : student.department;
+              const courseDeptId = typeof course.department === "object"
+                ? course.department?._id
+                : course.department;
+
+              return studentDeptId === courseDeptId &&
+                student.grade === course.year &&
+                student.semester === course.semester;
+            }).length;
+
+            return {
+              ...course,
+              calculatedStudentCount: studentCount
+            };
+          });
+
+          setMyCoursesWithCounts(coursesWithCounts);
+        } else {
+          setMyCoursesWithCounts([]);
+        }
       } else {
         console.warn(
           "fetchTeacherCourses: response indicated failure",
@@ -287,6 +322,7 @@ const Dashboard = () => {
         );
         // If API returned a message, show it but don't treat as fatal error
         setMyCourses(response.data?.data || []);
+        setMyCoursesWithCounts([]);
       }
     } catch (error) {
       console.error("Error fetching teacher courses:", error);
@@ -294,11 +330,14 @@ const Dashboard = () => {
 
       // Set empty array instead of undefined
       setMyCourses([]);
+      setMyCoursesWithCounts([]);
       // Show a helpful message to the user when the request fails
       showCustomPopup(
         "Unable to load your courses. Please check your connection or contact the administrator.",
         "error",
       );
+    } finally {
+      setCoursesLoading(false);
     }
   };
   const fetchStudentCourses = async () => {
@@ -348,7 +387,7 @@ const Dashboard = () => {
         .sort((a, b) => a.startTime.localeCompare(b.startTime));
 
       setUpcomingClasses(todaysClasses);
-      
+
       // Find next class (not yet started)
       const nextUpcomingClass = todaysClasses.find(classItem => classItem.startTime > currentTime);
       setNextClass(nextUpcomingClass || null);
@@ -395,7 +434,7 @@ const Dashboard = () => {
         .sort((a, b) => a.startTime.localeCompare(b.startTime));
 
       setUpcomingClasses(todaysClasses);
-      
+
       // Find next class (not yet started)
       const nextUpcomingClass = todaysClasses.find(classItem => classItem.startTime > currentTime);
       setNextClass(nextUpcomingClass || null);
@@ -613,7 +652,7 @@ const Dashboard = () => {
           )}
         </div>
         <div
-          className={`p-3 rounded-lg ${color} group-hover:scale-110 transition-transform`}
+          className={`p-3 rounded-lg ${color} transition-transform`}
         >
           <Icon size={24} className="text-white" />
         </div>
@@ -638,7 +677,7 @@ const Dashboard = () => {
           )}
         </div>
         <div
-          className={`p-3 rounded-lg ${color} group-hover:scale-110 transition-transform`}
+          className={`p-3 rounded-lg ${color} transition-transform`}
         >
           <Icon size={24} className="text-white" />
         </div>
@@ -714,19 +753,19 @@ const Dashboard = () => {
           icon={UserCog}
           title="Faculty Members"
           value={stats.teachers || 0}
-          color="bg-linear-to-br from-green-400 to-green-600"
+          color="bg-linear-to-br from-blue-400 to-blue-600"
         />
         <AdminStatCard
           icon={Folder}
           title="Departments"
           value={stats.departments || 0}
-          color="bg-linear-to-br from-purple-400 to-purple-600"
+          color="bg-linear-to-br from-blue-400 to-blue-600"
         />
         <AdminStatCard
           icon={TrendingUp}
           title="Attendance Rate"
           value={`${stats.attendance || 0}%`}
-          color="bg-linear-to-br from-orange-400 to-orange-600"
+          color="bg-linear-to-br from-blue-400 to-blue-600"
         />
       </div>
 
@@ -825,14 +864,14 @@ const Dashboard = () => {
           </h2>
           <div className="space-y-3">
             <button
-              className="w-full btn btn-primary flex items-center justify-center space-x-2"
+              className="w-full btn btn-primary flex items-center justify-center space-x-2 cursor-pointer"
               onClick={() => navigate("/students")}
             >
               <Users size={18} />
               <span>Add Student</span>
             </button>
             <button
-              className="w-full btn btn-secondary flex items-center justify-center space-x-2"
+              className="w-full btn btn-secondary flex items-center justify-center space-x-2 cursor-pointer"
               onClick={() => navigate("/teachers")}
             >
               <UserCog size={18} />
@@ -840,13 +879,16 @@ const Dashboard = () => {
             </button>
 
             <button
-              className="w-full btn btn-secondary flex items-center justify-center space-x-2"
+              className="w-full btn btn-secondary flex items-center justify-center space-x-2 cursor-pointer"
               onClick={() => navigate("/courses")}
             >
               <BookOpen size={18} />
               <span>Create Course</span>
             </button>
-            <button className="w-full btn btn-secondary flex items-center justify-center space-x-2">
+            <button
+              className="w-full btn btn-secondary flex items-center justify-center space-x-2 cursor-pointer"
+              onClick={() => navigate("/reports")}
+            >
               <BarChart3 size={18} />
               <span>Generate Reports</span>
             </button>
@@ -870,7 +912,7 @@ const Dashboard = () => {
           icon={Users}
           title="Total Students"
           value={stats.students || 0}
-          subtitle="Across all courses"
+          subtitle="Students"
           color="bg-blue-500"
         />
         <TeacherStatCard
@@ -894,32 +936,41 @@ const Dashboard = () => {
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
             My Courses
           </h2>
-          <div className="space-y-4">
-            {myCourses.length > 0 ? (
-              myCourses.map((course) => (
-                <div
-                  key={course._id}
-                  className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-600 rounded-lg"
-                >
-                  <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">
-                      {course.name}
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {course.code} • {course.enrolledStudents?.length || 0}{" "}
-                      students
-                    </p>
-                  </div>
-                  <button className="btn btn-secondary text-sm">Manage</button>
+          {coursesLoading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="animate-pulse p-4 border border-gray-200 dark:border-gray-600 rounded-lg">
+                  <div className="h-5 bg-gray-300 dark:bg-gray-600 rounded w-3/4 mb-2"></div>
+                  <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-1/2"></div>
                 </div>
-              ))
-            ) : (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                <BookOpen className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                <p>No courses assigned</p>
-              </div>
-            )}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {myCoursesWithCounts.length > 0 ? (
+                myCoursesWithCounts.map((course) => (
+                  <div
+                    key={course._id}
+                    className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-600 rounded-lg"
+                  >
+                    <div>
+                      <h3 className="font-semibold text-gray-900 dark:text-white">
+                        {course.name}
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {course.calculatedStudentCount || 0} Students
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <BookOpen className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                  <p>No courses assigned</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="space-y-6">
@@ -928,16 +979,25 @@ const Dashboard = () => {
               Quick Actions
             </h2>
             <div className="space-y-3">
-              <button className="w-full btn btn-primary flex items-center justify-center space-x-2">
+              <button
+                className="w-full btn btn-primary flex items-center justify-center space-x-2 cursor-pointer"
+                onClick={() => navigate("/teacher-grades")}
+              >
                 <BookOpen size={18} />
                 <span>Manage Grades</span>
               </button>
 
-              <button className="w-full btn btn-secondary flex items-center justify-center space-x-2">
+              <button
+                className="w-full btn btn-secondary flex items-center justify-center space-x-2 cursor-pointer"
+                onClick={() => navigate("/")}
+              >
                 <FileText size={18} />
                 <span>Create Assignment</span>
               </button>
-              <button className="w-full btn btn-secondary flex items-center justify-center space-x-2">
+              <button
+                className="w-full btn btn-secondary flex items-center justify-center space-x-2 cursor-pointer"
+                onClick={() => navigate("/schedule")}
+              >
                 <Calendar size={18} />
                 <span>View Schedule</span>
               </button>
