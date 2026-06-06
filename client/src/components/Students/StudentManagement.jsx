@@ -25,6 +25,8 @@ const StudentManagement = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterGrade, setFilterGrade] = useState("");
+  const [filterCourse, setFilterCourse] = useState("");
+  const [teacherCourses, setTeacherCourses] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [showGradeReport, setShowGradeReport] = useState(false);
@@ -99,7 +101,10 @@ const StudentManagement = () => {
     fetchStudents();
     fetchAvailableCourses();
     fetchDepartments();
-  }, []);
+    if (user?.role === "teacher") {
+      fetchTeacherCourses();
+    }
+  }, [user?.role]);
 
   // Auto-hide notification after 5 seconds
   useEffect(() => {
@@ -130,6 +135,16 @@ const StudentManagement = () => {
       setStudents([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTeacherCourses = async () => {
+    try {
+      const response = await axios.get("/courses/teacher-courses");
+      setTeacherCourses(response.data.data || []);
+    } catch (error) {
+      console.error("Error fetching teacher courses:", error);
+      setTeacherCourses([]);
     }
   };
 
@@ -169,6 +184,53 @@ const StudentManagement = () => {
         student.course?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         deptName.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesGrade = !filterGrade || student.grade === filterGrade;
+      
+      // For teachers, filter by course using department, year, and semester
+      let matchesCourse = true;
+      if (user?.role === "teacher") {
+        if (filterCourse) {
+          // Specific course selected
+          const selectedCourse = teacherCourses.find(c => c._id === filterCourse);
+          if (selectedCourse) {
+            // Match by department, year (grade), and semester
+            const studentDeptId = typeof student.department === "object" 
+              ? student.department?._id 
+              : student.department;
+            const courseDeptId = typeof selectedCourse.department === "object"
+              ? selectedCourse.department?._id
+              : selectedCourse.department;
+            
+            const deptMatch = studentDeptId === courseDeptId;
+            const yearMatch = student.grade === selectedCourse.year;
+            const semesterMatch = student.semester === selectedCourse.semester;
+            
+            matchesCourse = deptMatch && yearMatch && semesterMatch;
+          } else {
+            matchesCourse = false;
+          }
+        } else {
+          // "All Courses" - show students matching any of teacher's courses
+          matchesCourse = teacherCourses.some(course => {
+            const studentDeptId = typeof student.department === "object" 
+              ? student.department?._id 
+              : student.department;
+            const courseDeptId = typeof course.department === "object"
+              ? course.department?._id
+              : course.department;
+            
+            const deptMatch = studentDeptId === courseDeptId;
+            const yearMatch = student.grade === course.year;
+            const semesterMatch = student.semester === course.semester;
+            
+            return deptMatch && yearMatch && semesterMatch;
+          });
+        }
+      }
+      
+      // For admin, use grade filter; for teacher, use course filter
+      if (user?.role === "teacher") {
+        return matchesSearch && matchesCourse;
+      }
       return matchesSearch && matchesGrade;
     })
     .sort((a, b) => {
@@ -1060,7 +1122,9 @@ const StudentManagement = () => {
             Student Management
           </h1>
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-2">
-            Manage college student records and information
+            {user?.role === "teacher" 
+              ? "View students enrolled in your courses" 
+              : "Manage college student records and information"}
           </p>
         </div>
         {user?.role === "admin" && (
@@ -1372,15 +1436,28 @@ const StudentManagement = () => {
           </div>
           <select
             className="input w-full md:w-auto"
-            value={filterGrade}
-            onChange={(e) => setFilterGrade(e.target.value)}
+            value={user?.role === "teacher" ? filterCourse : filterGrade}
+            onChange={(e) => user?.role === "teacher" ? setFilterCourse(e.target.value) : setFilterGrade(e.target.value)}
           >
-            <option value="">All Academic Years</option>
-            {gradeOptions.map((grade) => (
-              <option key={grade} value={grade}>
-                {grade}
-              </option>
-            ))}
+            {user?.role === "teacher" ? (
+              <>
+                <option value="">All Courses</option>
+                {teacherCourses.map((course) => (
+                  <option key={course._id} value={course._id}>
+                    {course.code} - {course.name}
+                  </option>
+                ))}
+              </>
+            ) : (
+              <>
+                <option value="">All Academic Years</option>
+                {gradeOptions.map((grade) => (
+                  <option key={grade} value={grade}>
+                    {grade}
+                  </option>
+                ))}
+              </>
+            )}
           </select>
         </div>
       </div>
@@ -1398,70 +1475,81 @@ const StudentManagement = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-600">
-                  <th className="text-left py-3 px-2 sm:px-4 font-medium text-gray-900 dark:text-white text-sm sm:text-base whitespace-nowrap">
-                    Student ID
-                  </th>
-                  <th className="text-left py-3 px-2 sm:px-4 font-medium text-gray-900 dark:text-white text-sm sm:text-base">
-                    Name
-                  </th>
-                  <th className="text-left py-3 px-2 sm:px-4 font-medium text-gray-900 dark:text-white text-sm sm:text-base hidden md:table-cell">
-                    Email
-                  </th>
-                  <th className="text-left py-3 px-2 sm:px-4 font-medium text-gray-900 dark:text-white text-sm sm:text-base whitespace-nowrap hidden sm:table-cell">
-                    Academic Year
-                  </th>
-                  <th className="text-left py-3 px-2 sm:px-4 font-medium text-gray-900 dark:text-white text-sm sm:text-base hidden lg:table-cell">
-                    Semester
-                  </th>
-                  <th className="text-left py-3 px-2 sm:px-4 font-medium text-gray-900 dark:text-white text-sm sm:text-base hidden lg:table-cell">
-                    Department
-                  </th>
-                  <th className="text-left py-3 px-2 sm:px-4 font-medium text-gray-900 dark:text-white text-sm sm:text-base whitespace-nowrap">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredStudents.map((student) => (
-                  <tr
-                    key={student._id}
-                    className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-xs sm:text-sm"
-                  >
-                    <td className="py-3 px-2 sm:px-4 font-mono text-gray-900 dark:text-white">
-                      {student.studentId}
-                    </td>
-                    <td className="py-3 px-2 sm:px-4">
-                      <div className="font-medium text-gray-900 dark:text-white">
-                        {student.user?.name}
-                      </div>
-                    </td>
-                    <td className="py-3 px-2 sm:px-4 text-gray-900 dark:text-white hidden md:table-cell">
-                      {student.user?.email}
-                    </td>
-                    <td className="py-3 px-2 sm:px-4 text-gray-900 dark:text-white hidden sm:table-cell whitespace-nowrap">
-                      {student.grade}
-                    </td>
-                    <td className="py-3 px-2 sm:px-4 text-gray-900 dark:text-white hidden lg:table-cell">
-                      {student.semester || "-"}
-                    </td>
-                    <td className="py-3 px-2 sm:px-4 text-gray-900 dark:text-white hidden lg:table-cell">
-                      {student.department?.name || student.department || "-"}
-                    </td>
-                    <td className="py-3 px-2 sm:px-4">
-                      <div className="flex space-x-1 sm:space-x-2">
-                        <button
-                          className="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 cursor-pointer"
-                          title="Grade report"
-                          onClick={() => handleViewGradeReport(student)}
-                        >
-                          <Folder size={16} className="sm:size-4" />
-                        </button>
-                        {user?.role === "admin" && (
-                          <>
+          <>
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Total Students: <span className="font-semibold text-gray-900 dark:text-white">{filteredStudents.length}</span>
+              </p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-gray-600">
+                    <th className="text-left py-3 px-2 sm:px-4 font-medium text-gray-900 dark:text-white text-sm sm:text-base whitespace-nowrap">
+                      Student ID
+                    </th>
+                    <th className="text-left py-3 px-2 sm:px-4 font-medium text-gray-900 dark:text-white text-sm sm:text-base">
+                      Name
+                    </th>
+                    {user?.role === "admin" && (
+                      <th className="text-left py-3 px-2 sm:px-4 font-medium text-gray-900 dark:text-white text-sm sm:text-base hidden md:table-cell">
+                        Email
+                      </th>
+                    )}
+                    <th className="text-left py-3 px-2 sm:px-4 font-medium text-gray-900 dark:text-white text-sm sm:text-base whitespace-nowrap hidden sm:table-cell">
+                      Academic Year
+                    </th>
+                    <th className="text-left py-3 px-2 sm:px-4 font-medium text-gray-900 dark:text-white text-sm sm:text-base hidden lg:table-cell">
+                      Semester
+                    </th>
+                    <th className="text-left py-3 px-2 sm:px-4 font-medium text-gray-900 dark:text-white text-sm sm:text-base hidden lg:table-cell">
+                      Department
+                    </th>
+                    {user?.role === "admin" && (
+                      <th className="text-left py-3 px-2 sm:px-4 font-medium text-gray-900 dark:text-white text-sm sm:text-base whitespace-nowrap">
+                        Actions
+                      </th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredStudents.map((student) => (
+                    <tr
+                      key={student._id}
+                      className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-xs sm:text-sm"
+                    >
+                      <td className="py-3 px-2 sm:px-4 font-mono text-gray-900 dark:text-white">
+                        {student.studentId}
+                      </td>
+                      <td className="py-3 px-2 sm:px-4">
+                        <div className="font-medium text-gray-900 dark:text-white">
+                          {student.user?.name}
+                        </div>
+                      </td>
+                      {user?.role === "admin" && (
+                        <td className="py-3 px-2 sm:px-4 text-gray-900 dark:text-white hidden md:table-cell">
+                          {student.user?.email}
+                        </td>
+                      )}
+                      <td className="py-3 px-2 sm:px-4 text-gray-900 dark:text-white hidden sm:table-cell whitespace-nowrap">
+                        {student.grade}
+                      </td>
+                      <td className="py-3 px-2 sm:px-4 text-gray-900 dark:text-white hidden lg:table-cell">
+                        {student.semester || "-"}
+                      </td>
+                      <td className="py-3 px-2 sm:px-4 text-gray-900 dark:text-white hidden lg:table-cell">
+                        {student.department?.name || student.department || "-"}
+                      </td>
+                      {user?.role === "admin" && (
+                        <td className="py-3 px-2 sm:px-4">
+                          <div className="flex space-x-1 sm:space-x-2">
+                            <button
+                              className="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 cursor-pointer"
+                              title="Grade report"
+                              onClick={() => handleViewGradeReport(student)}
+                            >
+                              <Folder size={16} className="sm:size-4" />
+                            </button>
                             <button
                               className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 cursor-pointer"
                               title="Edit Info"
@@ -1486,15 +1574,15 @@ const StudentManagement = () => {
                                 <Trash2 size={16} className="sm:size-4" />
                               )}
                             </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

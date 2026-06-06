@@ -290,19 +290,39 @@ router.post(
   },
 );
 
-// @desc    Get all grades (for admin)
+// @desc    Get all grades (for admin and teacher)
 // @route   GET /api/grades
-// @access  Private (Admin)
-router.get("/", auth, authorize("admin"), async (req, res) => {
+// @access  Private (Admin, Teacher)
+router.get("/", auth, authorize("admin", "teacher"), async (req, res) => {
   try {
     const { page = 1, limit = 20, studentId, courseId, semester } = req.query;
 
     const query = {};
+    
+    // If teacher, only show grades for their courses
+    if (req.user.role === "teacher") {
+      const teacherCourses = await Course.find({ teacher: req.user._id });
+      const teacherCourseIds = teacherCourses.map(c => c._id);
+      query.course = { $in: teacherCourseIds };
+    }
+    
     if (studentId) {
       const student = await Student.findOne({ studentId });
       if (student) query.student = student._id;
     }
-    if (courseId) query.course = courseId;
+    if (courseId) {
+      // If teacher, verify they teach this course
+      if (req.user.role === "teacher") {
+        const course = await Course.findById(courseId);
+        if (!course || course.teacher.toString() !== req.user._id.toString()) {
+          return res.status(403).json({
+            success: false,
+            message: "You are not authorized to view grades for this course",
+          });
+        }
+      }
+      query.course = courseId;
+    }
     if (semester) query.semester = semester;
 
     const grades = await Grade.find(query)

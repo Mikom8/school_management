@@ -20,6 +20,7 @@ import {
 import { useAuth } from "../../contexts/AuthContext";
 import Toast from "../Common/Toast";
 import SkeletonLoading from "../Common/SkeletonLoading";
+import { formatTimeTo12Hour } from "../../utils/timeFormat";
 
 const CourseManagement = () => {
   const [courses, setCourses] = useState([]);
@@ -701,7 +702,7 @@ const CourseManagement = () => {
     const { days, startTime, endTime, room } = course.schedule;
     const dayStr = days.join(", ");
     const timeStr =
-      startTime && endTime ? `${startTime} - ${endTime}` : "Time not set";
+      startTime && endTime ? formatTimeTo12Hour(`${startTime} - ${endTime}`) : "Time not set";
 
     return `${dayStr} • ${timeStr}`;
   };

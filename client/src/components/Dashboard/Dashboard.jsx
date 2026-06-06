@@ -24,6 +24,7 @@ import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
 import { motion } from "framer-motion";
 import SkeletonLoading from "../Common/SkeletonLoading";
+import { formatTimeTo12Hour } from "../../utils/timeFormat";
 import {
   BarChart,
   Bar,
@@ -70,6 +71,8 @@ const Dashboard = () => {
   const [myCourses, setMyCourses] = useState([]);
   const [myGrades, setMyGrades] = useState({ grades: [], gpa: "0.00" });
   const [upcomingClasses, setUpcomingClasses] = useState([]);
+  const [nextClass, setNextClass] = useState(null);
+  const [scheduleLoading, setScheduleLoading] = useState(false);
   const [enrollmentTrend, setEnrollmentTrend] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterGrade, setFilterGrade] = useState("");
@@ -320,21 +323,88 @@ const Dashboard = () => {
 
   const fetchTeacherSchedule = async () => {
     try {
-      const response = await axios.get("/schedule");
-      setUpcomingClasses(response.data.data || []);
+      setScheduleLoading(true);
+      const response = await axios.get('/courses/teacher-courses');
+      const courses = response.data.data || [];
+
+      // Get current day and time
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const now = new Date();
+      const today = dayNames[now.getDay()];
+      const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      // Filter courses scheduled for today and format them
+      const todaysClasses = courses
+        .filter(course => course.schedule?.days?.includes(today))
+        .map(course => ({
+          title: `${course.code} - ${course.name}`,
+          courseName: course.name,
+          time: course.schedule?.startTime && course.schedule?.endTime
+            ? formatTimeTo12Hour(`${course.schedule.startTime} - ${course.schedule.endTime}`)
+            : 'Time TBA',
+          startTime: course.schedule?.startTime || '00:00',
+          room: course.schedule?.room || 'TBA'
+        }))
+        .sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+      setUpcomingClasses(todaysClasses);
+      
+      // Find next class (not yet started)
+      const nextUpcomingClass = todaysClasses.find(classItem => classItem.startTime > currentTime);
+      setNextClass(nextUpcomingClass || null);
     } catch (error) {
-      console.error("Error fetching teacher schedule:", error);
+      console.error('Error fetching teacher schedule:', error);
       setUpcomingClasses([]);
+      setNextClass(null);
+    } finally {
+      setScheduleLoading(false);
     }
   };
 
   const fetchStudentSchedule = async () => {
     try {
-      const response = await axios.get("/schedule");
-      setUpcomingClasses(response.data.data || []);
+      setScheduleLoading(true);
+      const gradesResponse = await axios.get('/grades/my-grades');
+      const grades = gradesResponse.data.data.grades || [];
+
+      // Get current day and time
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const now = new Date();
+      const today = dayNames[now.getDay()];
+      const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      // Get unique courses and filter for today
+      const enrolledCoursesMap = new Map();
+      grades.forEach(grade => {
+        if (grade.course && grade.course._id) {
+          enrolledCoursesMap.set(grade.course._id, grade.course);
+        }
+      });
+
+      const todaysClasses = Array.from(enrolledCoursesMap.values())
+        .filter(course => course.schedule?.days?.includes(today))
+        .map(course => ({
+          title: `${course.code} - ${course.name}`,
+          courseName: course.name,
+          time: course.schedule?.startTime && course.schedule?.endTime
+            ? formatTimeTo12Hour(`${course.schedule.startTime} - ${course.schedule.endTime}`)
+            : 'Time TBA',
+          startTime: course.schedule?.startTime || '00:00',
+          room: course.schedule?.room || 'TBA'
+        }))
+        .sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+      setUpcomingClasses(todaysClasses);
+      
+      // Find next class (not yet started)
+      const nextUpcomingClass = todaysClasses.find(classItem => classItem.startTime > currentTime);
+      setNextClass(nextUpcomingClass || null);
     } catch (error) {
-      console.error("Error fetching student schedule:", error);
+      console.error('Error fetching student schedule:', error);
       setUpcomingClasses([]);
+      setNextClass(null);
+    } finally {
+      setScheduleLoading(false);
     }
   };
 
@@ -583,7 +653,7 @@ const Dashboard = () => {
           <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
             {title}
           </p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+          <p className="text-[1.3rem] font-bold text-gray-900 dark:text-white mt-1">
             {value}
           </p>
           {subtitle && (
@@ -593,7 +663,7 @@ const Dashboard = () => {
           )}
         </div>
         <div
-          className={`p-3 rounded-lg ${color} group-hover:scale-110 transition-transform`}
+          className={`p-3 rounded-lg ${color} transition-transform`}
         >
           <Icon size={24} className="text-white" />
         </div>
@@ -801,25 +871,21 @@ const Dashboard = () => {
           title="Total Students"
           value={stats.students || 0}
           subtitle="Across all courses"
-          color="bg-green-500"
+          color="bg-blue-500"
         />
         <TeacherStatCard
           icon={FileText}
           title="Assignments Due"
           value={stats.assignments || 0}
           subtitle="This week"
-          color="bg-orange-500"
+          color="bg-blue-500"
         />
         <TeacherStatCard
           icon={Clock4}
           title="Next Class"
-          value={upcomingClasses.length > 0 ? "Today" : "None"}
-          subtitle={
-            upcomingClasses.length > 0
-              ? upcomingClasses[0]?.title
-              : "No classes scheduled"
-          }
-          color="bg-purple-500"
+          value={nextClass ? nextClass.courseName : "None"}
+          subtitle={nextClass ? nextClass.time : "No upcoming classes"}
+          color="bg-blue-500"
         />
       </div>
 
@@ -882,28 +948,43 @@ const Dashboard = () => {
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
               Today's Classes
             </h2>
-            <div className="space-y-3">
-              {upcomingClasses.slice(0, 3).map((classItem, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-                >
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-white text-sm">
-                      {classItem.title}
-                    </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      {classItem.time} • {classItem.room}
-                    </p>
+            {scheduleLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="flex items-center justify-between p-3 bg-gray-200 dark:bg-gray-700 rounded-lg">
+                      <div className="flex-1">
+                        <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-3/4 mb-2"></div>
+                        <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-1/2"></div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
-              {upcomingClasses.length === 0 && (
-                <p className="text-gray-500 dark:text-gray-400 text-sm text-center py-4">
-                  No classes today
-                </p>
-              )}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {upcomingClasses.slice(0, 3).map((classItem, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                  >
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-white text-sm">
+                        {classItem.title}
+                      </p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        {classItem.time} • {classItem.room}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                {upcomingClasses.length === 0 && (
+                  <p className="text-gray-500 dark:text-gray-400 text-sm text-center py-4">
+                    No classes today
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -925,25 +1006,21 @@ const Dashboard = () => {
           title="Current GPA"
           value={myGrades.gpa || "0.00"}
           subtitle="Based on completed courses"
-          color="bg-green-500"
+          color="bg-blue-500"
         />
         <StudentStatCard
           icon={FileText}
           title="Assignments Due"
           value="2"
           subtitle="This week"
-          color="bg-orange-500"
+          color="bg-blue-500"
         />
         <StudentStatCard
           icon={Clock4}
           title="Next Class"
-          value={upcomingClasses.length > 0 ? "Today" : "None"}
-          subtitle={
-            upcomingClasses.length > 0
-              ? upcomingClasses[0]?.title
-              : "No classes"
-          }
-          color="bg-purple-500"
+          value={nextClass ? nextClass.courseName : "None"}
+          subtitle={nextClass ? nextClass.time : "No upcoming classes"}
+          color="bg-blue-500"
         />
       </div>
 
@@ -1004,28 +1081,43 @@ const Dashboard = () => {
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
               Today's Schedule
             </h2>
-            <div className="space-y-3">
-              {upcomingClasses.slice(0, 3).map((classItem, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-                >
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-white text-sm">
-                      {classItem.title}
-                    </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      {classItem.time} • {classItem.room}
-                    </p>
+            {scheduleLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="flex items-center justify-between p-3 bg-gray-200 dark:bg-gray-700 rounded-lg">
+                      <div className="flex-1">
+                        <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-3/4 mb-2"></div>
+                        <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-1/2"></div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
-              {upcomingClasses.length === 0 && (
-                <p className="text-gray-500 dark:text-gray-400 text-sm text-center py-4">
-                  No classes today
-                </p>
-              )}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {upcomingClasses.slice(0, 3).map((classItem, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                  >
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-white text-sm">
+                        {classItem.title}
+                      </p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        {classItem.time} • {classItem.room}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                {upcomingClasses.length === 0 && (
+                  <p className="text-gray-500 dark:text-gray-400 text-sm text-center py-4">
+                    No classes today
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1122,7 +1214,7 @@ const Dashboard = () => {
           {user?.role === "admin"
             ? `Welcome back, ${user?.name}! Here's an overview of the college.`
             : user?.role === "teacher"
-              ? `Welcome, Professor ${user?.name}! Here's your teaching overview.`
+              ? `Welcome, Instructor ${user?.name}! Here's your teaching overview.`
               : `Welcome back, ${user?.name}! Here's your academic overview.`}
         </p>
       </div>
