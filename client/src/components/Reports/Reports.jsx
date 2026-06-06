@@ -258,10 +258,11 @@ const Reports = () => {
   const getGradeColor = (grade) => {
     switch (grade) {
       case "A+":
-        return "bg-green-100 text-green-800 dark:bg-green-900/80 dark:text-green-300";
+        return "bg-green-100 text-green-800 dark:bg-green-900/80 dark:text-green-100";
       case "A":
-      case "A-":
         return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300";
+      case "A-":
+        return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-200";
       case "B+":
       case "B":
       case "B-":

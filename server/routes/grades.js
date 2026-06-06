@@ -27,7 +27,7 @@ router.get("/my-grades", auth, authorize("student"), async (req, res) => {
     const grades = await Grade.find({ student: student._id })
       .populate({
         path: "course",
-        select: "name code credits",
+        select: "name code credits schedule",
         populate: { path: "teacher", select: "name" },
       })
       .populate("gradedBy", "name")

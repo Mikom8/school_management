@@ -13,26 +13,86 @@ const Schedule = () => {
 
   useEffect(() => {
     fetchSchedule();
-  }, []);
+  }, [user]);
 
   const fetchSchedule = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/schedule');
-      setSchedule(response.data.data || []);
+
+      let scheduleData = [];
+
+      if (user?.role === 'teacher') {
+        // Fetch teacher's courses
+        const coursesResponse = await axios.get('/courses/teacher-courses');
+        const teacherCourses = coursesResponse.data.data || [];
+
+        // Convert courses to schedule events
+        scheduleData = teacherCourses.map(course => ({
+          id: course._id,
+          title: `${course.name}`,
+          type: 'lecture',
+          schedule: course.schedule || {},
+          room: course.schedule?.room || 'TBA',
+          instructor: user.name,
+          course: course
+        }));
+      } else if (user?.role === 'student') {
+        // Fetch student's grades to see which courses they're enrolled in
+        try {
+          const gradesResponse = await axios.get('/grades/my-grades');
+          const grades = gradesResponse.data.data.grades || [];
+
+          // Get unique courses from grades (enrolled courses)
+          const enrolledCoursesMap = new Map();
+          grades.forEach(grade => {
+            if (grade.course && grade.course._id) {
+              enrolledCoursesMap.set(grade.course._id, grade.course);
+            }
+          });
+
+          // Convert to schedule events
+          scheduleData = Array.from(enrolledCoursesMap.values()).map(course => ({
+            id: course._id,
+            title: `${course.name}`,
+            type: 'lecture',
+            schedule: course.schedule || {},
+            room: course.schedule?.room || 'TBA',
+            instructor: course.teacher?.name || 'TBA',
+            course: course
+          }));
+        } catch (error) {
+          // If no grades yet, show empty schedule
+          scheduleData = [];
+        }
+      } else {
+        // Admin: Fetch all courses
+        const coursesResponse = await axios.get('/courses');
+        const allCourses = coursesResponse.data.data || [];
+
+        scheduleData = allCourses.map(course => ({
+          id: course._id,
+          title: `${course.name}`,
+          type: 'lecture',
+          schedule: course.schedule || {},
+          room: course.schedule?.room || 'TBA',
+          instructor: course.teacher?.name || 'TBA',
+          course: course
+        }));
+      }
+
+      setSchedule(scheduleData);
     } catch (error) {
-      console.error('Error fetching schedule:', error);
-      alert('Error loading schedule: ' + (error.response?.data?.message || 'Unknown error'));
+      setSchedule([]);
     } finally {
       setLoading(false);
     }
   };
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const timeSlots = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
+  const timeSlots = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00'];
 
   const getEventsForDay = (day) => {
-    return schedule.filter(event => 
+    return schedule.filter(event =>
       event.schedule?.days?.includes(day)
     );
   };
@@ -62,29 +122,8 @@ const Schedule = () => {
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">Schedule</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Your real-time class and meeting schedule
+            Your Class Schedules
           </p>
-        </div>
-        
-        <div className="flex space-x-2 mt-4 lg:mt-0">
-          <select
-            value={view}
-            onChange={(e) => setView(e.target.value)}
-            className="input"
-          >
-            <option value="week">Week View</option>
-            <option value="day">Day View</option>
-          </select>
-          
-          {(user?.role === 'admin' || user?.role === 'teacher') && (
-            <button 
-              onClick={() => setShowAddForm(true)}
-              className="btn btn-primary flex items-center space-x-2"
-            >
-              <Plus size={20} />
-              <span>Add Event</span>
-            </button>
-          )}
         </div>
       </div>
 
@@ -93,7 +132,6 @@ const Schedule = () => {
         <div className="overflow-x-auto">
           {/* Days Header */}
           <div className="grid grid-cols-6 min-w-[800px] border-b border-gray-200 dark:border-gray-600">
-            <div className="p-4 font-medium text-gray-900 dark:text-white">Time</div>
             {days.map(day => (
               <div key={day} className="p-4 font-medium text-gray-900 dark:text-white text-center">
                 {day}
@@ -113,7 +151,7 @@ const Schedule = () => {
                     const eventTime = event.schedule?.startTime;
                     return eventTime && eventTime.startsWith(time.substring(0, 2));
                   });
-                  
+
                   return (
                     <div key={day} className="p-1 border-r border-gray-200 dark:border-gray-600 min-h-[80px]">
                       {events.map(event => (
@@ -128,12 +166,12 @@ const Schedule = () => {
                           </div>
                           <div className="flex items-center space-x-1">
                             <MapPin size={10} />
-                            <span className="truncate">{event.room}</span>
+                            <span className="truncate">Room: {event.room}</span>
                           </div>
                           {event.instructor && (
                             <div className="flex items-center space-x-1">
                               <Users size={10} />
-                              <span className="truncate">{event.instructor}</span>
+                              <span className="truncate">Instructor: {event.instructor}</span>
                             </div>
                           )}
                         </div>
@@ -157,8 +195,8 @@ const Schedule = () => {
             <Calendar size={48} className="mx-auto mb-4 opacity-50" />
             <p>No schedule events found</p>
             <p className="text-sm mt-2">
-              {user?.role === 'admin' || user?.role === 'teacher' 
-                ? 'Add courses or events to see them here' 
+              {user?.role === 'admin' || user?.role === 'teacher'
+                ? 'Add courses or events to see them here'
                 : 'You are not enrolled in any courses yet'
               }
             </p>
@@ -167,11 +205,10 @@ const Schedule = () => {
           <div className="space-y-3">
             {schedule.slice(0, 5).map(event => (
               <div key={event.id} className="flex items-center space-x-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg">
-                <div className={`w-3 h-3 rounded-full ${
-                  event.type === 'lecture' ? 'bg-blue-500' :
+                <div className={`w-3 h-3 rounded-full ${event.type === 'lecture' ? 'bg-blue-500' :
                   event.type === 'lab' ? 'bg-green-500' :
-                  event.type === 'meeting' ? 'bg-purple-500' : 'bg-orange-500'
-                }`}></div>
+                    event.type === 'meeting' ? 'bg-purple-500' : 'bg-orange-500'
+                  }`}></div>
                 <div className="flex-1">
                   <div className="font-medium text-gray-900 dark:text-white">{event.title}</div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">

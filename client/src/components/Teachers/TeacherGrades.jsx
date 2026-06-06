@@ -52,12 +52,26 @@ const TeacherGrades = () => {
         return;
       }
 
+      // Fetch all grades for all teacher's courses in ONE API call
+      const gradesResponse = await axios.get("/grades/teacher-grades");
+      const allGradesData = gradesResponse.data.data.courses || [];
+
       // Fetch all students
       const studentsResponse = await axios.get("/students");
       const allStudents = studentsResponse.data.data || [];
 
+      // Create a map of grades by student ID and course ID for quick lookup
+      const gradesMap = new Map();
+      allGradesData.forEach((courseData) => {
+        courseData.students.forEach((studentData) => {
+          const key = `${studentData.student._id}-${courseData.course._id}`;
+          gradesMap.set(key, studentData.grade);
+        });
+      });
+
       // Filter students enrolled in teacher's courses
       const enrolledStudents = [];
+      const addedStudentCourses = new Set(); // Track unique student-course combinations
 
       for (const course of teacherCourses) {
         // Find students who match this course by:
@@ -91,41 +105,22 @@ const TeacherGrades = () => {
         });
 
         for (const student of courseStudents) {
-          // Check if student already added
-          const existingIndex = enrolledStudents.findIndex(
-            (s) => s.student._id === student._id,
-          );
+          const studentCourseKey = `${student._id}-${course._id}`;
 
-          if (existingIndex === -1) {
-            // Fetch grades for this student in this course
-            try {
-              const gradesResponse = await axios.get(
-                `/grades/teacher-grades?courseId=${course._id}`,
-              );
+          // Check if student-course combination already added
+          if (!addedStudentCourses.has(studentCourseKey)) {
+            addedStudentCourses.add(studentCourseKey);
 
-              const courseData = gradesResponse.data.data.courses.find(
-                (c) => c.course._id === course._id,
-              );
+            // Get grade from the pre-fetched grades map
+            const gradeKey = `${student._id}-${course._id}`;
+            const grade = gradesMap.get(gradeKey) || null;
 
-              const studentGrade = courseData?.students.find(
-                (s) => s.student._id === student._id,
-              );
-
-              enrolledStudents.push({
-                student: student,
-                user: student.user,
-                course: course,
-                grade: studentGrade?.grade || null,
-              });
-            } catch (error) {
-              // No grades yet for this student
-              enrolledStudents.push({
-                student: student,
-                user: student.user,
-                course: course,
-                grade: null,
-              });
-            }
+            enrolledStudents.push({
+              student: student,
+              user: student.user,
+              course: course,
+              grade: grade,
+            });
           }
         }
       }
@@ -231,9 +226,9 @@ const TeacherGrades = () => {
           <div className="flex-1 relative">
             <label htmlFor="searchGrade">
               <Search
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 cursor-text"
-              size={20}
-            />
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 cursor-text"
+                size={20}
+              />
             </label>
             <input
               type="text"
