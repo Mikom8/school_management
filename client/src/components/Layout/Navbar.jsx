@@ -61,7 +61,7 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
           {/* Right Section */}
           <div className="flex items-center space-x-3">
             {/* Profile Dropdown */}
-            <div className="relative flex gap-3 items-center">
+            <div className="relative flex gap-3 items-center" title="Notification">
               <div className="hover:bg-gray-600 p-3 rounded-full cursor-pointer">
                 <Bell size={24} className="dark:text-white" />
               </div>
