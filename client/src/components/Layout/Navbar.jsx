@@ -78,20 +78,24 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
     const wasOpen = isNotificationOpen;
     setIsNotificationOpen(!isNotificationOpen);
 
-    // Mark all as read when opening dropdown (if there are unread ones)
+    // When opening dropdown with unread notifications
     if (!wasOpen && unreadCount > 0) {
       setUnreadCount(0); // Clear badge immediately for UX
-
-      // Mark all notifications as read in the database
+      
+      // Mark all notifications as read in the database (so reload works correctly)
       try {
         await axios.put("/notifications/read-all");
-        // Update local state to reflect read status
-        setNotifications(prev =>
-          prev.map(notif => ({ ...notif, read: true }))
-        );
+        // Don't update local state yet - keep blue dots visible
       } catch (error) {
         console.error("Error marking notifications as read:", error);
       }
+    }
+    
+    // When closing dropdown, update local state to hide blue dots
+    if (wasOpen) {
+      setNotifications(prev =>
+        prev.map(notif => ({ ...notif, read: true }))
+      );
     }
   };
 
