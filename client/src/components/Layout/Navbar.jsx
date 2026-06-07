@@ -61,9 +61,38 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
           {/* Right Section */}
           <div className="flex items-center space-x-3">
             {/* Profile Dropdown */}
-            <div className="relative flex gap-3 items-center" title="Notification">
-              <div className="hover:bg-gray-600 p-3 rounded-full cursor-pointer">
+            <div className="relative flex gap-3 items-center">
+              <div className="hover:bg-gray-600 p-3 rounded-full cursor-pointer relative">
+                <span className="text-white text-xs px-1 rounded-full bg-red-600 absolute right-0 top-0"></span>
                 <Bell size={24} className="dark:text-white" />
+                
+                <div>
+                  <div className="absolute top-10 right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50">
+                    <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+                      <h3 className="font-semibold text-gray-900 dark:text-white">
+                        Notifications
+                      </h3>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto">
+                      <div className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer">
+                        <p className="text-sm text-gray-900 dark:text-white">
+                          New message from John Doe
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          2 minutes ago
+                        </p>
+                      </div>
+                      <div className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer">
+                        <p className="text-sm text-gray-900 dark:text-white">
+                          Assignment submitted
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          1 hour ago
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
