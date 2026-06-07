@@ -223,7 +223,7 @@ router.post(
       // Calculate letter grade from percentage if not provided
       let finalGrade = grade;
       let finalPercentage = percentage;
-      
+
       // If grade is NG, percentage is optional (set to 0 or null)
       if (finalGrade === "NG") {
         finalPercentage = percentage || 0;
@@ -279,8 +279,8 @@ router.post(
       // Create notification for student
       try {
         const notificationTitle = existingGrade ? "Grade Updated" : "New Grade Posted";
-        const notificationMessage = `Your grade for ${course.name} (${course.code}) has been ${existingGrade ? 'updated' : 'posted'}: ${finalGrade || 'Pending'} ${finalPercentage ? `(${finalPercentage}%)` : ''}`;
-        
+        const notificationMessage = `Your grade for ${course.name} has been ${existingGrade ? 'updated' : 'posted'}: ${finalGrade || 'Pending'} ${finalPercentage ? `(${finalPercentage}%)` : ''}`;
+
         await Notification.create({
           user: student.user._id,
           type: existingGrade ? "grade_updated" : "grade_assigned",
@@ -324,14 +324,14 @@ router.get("/", auth, authorize("admin", "teacher"), async (req, res) => {
     const { page = 1, limit = 20, studentId, courseId, semester } = req.query;
 
     const query = {};
-    
+
     // If teacher, only show grades for their courses
     if (req.user.role === "teacher") {
       const teacherCourses = await Course.find({ teacher: req.user._id });
       const teacherCourseIds = teacherCourses.map(c => c._id);
       query.course = { $in: teacherCourseIds };
     }
-    
+
     if (studentId) {
       const student = await Student.findOne({ studentId });
       if (student) query.student = student._id;
@@ -417,7 +417,7 @@ const calculateGPA = (grades) => {
   grades.forEach((grade) => {
     // Skip NG grades in GPA calculation
     if (grade.grade === "NG") return;
-    
+
     const credits = grade.course?.credits || 0;
     const points = gradePoints[grade.grade] || 0;
     totalPoints += points * credits;

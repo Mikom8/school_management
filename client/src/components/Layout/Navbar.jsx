@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { LogOut, User, Menu, X, Search, Bell, Check } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -44,13 +46,47 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
     }
   };
 
+  const deleteNotification = async (notificationId) => {
+    try {
+      await axios.delete(`/notifications/${notificationId}`);
+      // Remove from local state
+      setNotifications(prev => prev.filter(notif => notif._id !== notificationId));
+      // Update unread count if it was unread
+      const notification = notifications.find(n => n._id === notificationId);
+      if (notification && !notification.read) {
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+    } catch (error) {
+      console.error("Error deleting notification:", error);
+    }
+  };
+
+  const handleNotificationClick = async (notification) => {
+    // Close dropdown
+    setIsNotificationOpen(false);
+
+    // Navigate based on notification type
+    if (notification.type === "grade_assigned" || notification.type === "grade_updated") {
+      navigate("/grade-report");
+    }
+
+    // Delete the notification after navigation
+    await deleteNotification(notification._id);
+  };
+
   const markAllAsRead = async () => {
     try {
       setNotificationLoading(true);
       await axios.put("/notifications/read-all");
-      setNotifications(prev =>
-        prev.map(notif => ({ ...notif, read: true }))
+      
+      // Delete all read notifications from the database
+      const deletePromises = notifications.map(notif => 
+        axios.delete(`/notifications/${notif._id}`).catch(err => console.error("Error deleting:", err))
       );
+      await Promise.all(deletePromises);
+      
+      // Clear local state
+      setNotifications([]);
       setUnreadCount(0);
     } catch (error) {
       console.error("Error marking all as read:", error);
@@ -149,10 +185,10 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
                       <button
                         onClick={markAllAsRead}
                         disabled={notificationLoading}
-                        className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center space-x-1"
+                        className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center space-x-1 disabled:opacity-50"
                       >
                         <Check size={14} />
-                        <span>Mark all read</span>
+                        <span>Clear all</span>
                       </button>
                     )}
                   </div>
@@ -168,13 +204,15 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
                       notifications.map((notification) => (
                         <div
                           key={notification._id}
-                          onClick={() => !notification.read && markAsRead(notification._id)}
-                          className={`p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors ${
+                          className={`group p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
                             !notification.read ? "bg-blue-50 dark:bg-blue-900/10" : ""
                           }`}
                         >
                           <div className="flex items-start justify-between">
-                            <div className="flex-1 min-w-0">
+                            <div 
+                              className="flex-1 min-w-0 cursor-pointer"
+                              onClick={() => handleNotificationClick(notification)}
+                            >
                               <p className={`text-sm font-medium ${
                                 !notification.read
                                   ? "text-gray-900 dark:text-white"
@@ -189,9 +227,21 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
                                 {formatTime(notification.createdAt)}
                               </p>
                             </div>
-                            {!notification.read && (
-                              <span className="ml-2 w-2 h-2 bg-blue-600 rounded-full shrink-0 mt-1"></span>
-                            )}
+                            <div className="flex items-center ml-2 space-x-2">
+                              {!notification.read && (
+                                <span className="w-2 h-2 bg-blue-600 rounded-full shrink-0 mt-1"></span>
+                              )}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteNotification(notification._id);
+                                }}
+                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-all text-red-500 dark:text-red-400"
+                                title="Delete notification"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ))
