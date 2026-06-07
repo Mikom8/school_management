@@ -88,7 +88,7 @@ const Sidebar = ({ isMobileOpen, onMobileClose, onSidebarToggle }) => {
       name: "Settings",
       href: "/settings",
       icon: Settings,
-      roles: ["admin"],
+      roles: ["admin", "teacher", "student"],
     },
   ];
 
