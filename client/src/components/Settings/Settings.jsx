@@ -120,12 +120,6 @@ const Settings = () => {
                 <p className="text-sm text-gray-500 dark:text-gray-400">Email</p>
                 <p className="font-medium text-gray-900 dark:text-white">{user?.email || "—"}</p>
               </div>
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Role</p>
-                <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 capitalize">
-                  {user?.role || "—"}
-                </span>
-              </div>
             </div>
           </div>
 
@@ -149,7 +143,6 @@ const Settings = () => {
                 onClick={() => setShowPasswordModal(true)}
                 className="btn btn-primary flex items-center space-x-2 cursor-pointer"
               >
-                <Lock size={16} />
                 <span>Change Password</span>
               </button>
             </div>
@@ -335,12 +328,6 @@ const Settings = () => {
               <p className="text-sm text-gray-500 dark:text-gray-400">Email</p>
               <p className="font-medium text-gray-900 dark:text-white">{user?.email || "—"}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Role</p>
-              <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 capitalize">
-                {user?.role || "—"}
-              </span>
-            </div>
           </div>
         </div>
 
@@ -426,7 +413,6 @@ const Settings = () => {
               onClick={() => setShowPasswordModal(true)}
               className="btn btn-primary flex items-center space-x-2 cursor-pointer"
             >
-              <Lock size={16} />
               <span>Change Password</span>
             </button>
           </div>
