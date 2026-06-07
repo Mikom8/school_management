@@ -81,7 +81,7 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
     // Mark all as read when opening dropdown (if there are unread ones)
     if (!wasOpen && unreadCount > 0) {
       setUnreadCount(0); // Clear badge immediately for UX
-      
+
       // Mark all notifications as read in the database
       try {
         await axios.put("/notifications/read-all");
@@ -183,7 +183,7 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
             <div className="relative">
               <button
                 onClick={handleNotificationOpen}
-                className="relative p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="relative p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
               >
                 {unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
@@ -205,7 +205,7 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
                       <button
                         onClick={markAllAsRead}
                         disabled={notificationLoading}
-                        className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center space-x-1 disabled:opacity-50"
+                        className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center space-x-1 disabled:opacity-50 cursor-pointer"
                       >
                         <Check size={14} />
                         <span>Clear all</span>
@@ -242,13 +242,15 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
                               </p>
                             </div>
                             <div className="flex items-center ml-2 space-x-2">
-                              <span className="w-2 h-2 bg-blue-600 rounded-full shrink-0 mt-1"></span>
+                              {!notification.read && (
+                                <span className="w-2 h-2 bg-blue-600 rounded-full shrink-0 mt-1"></span>
+                              )}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   deleteNotification(notification._id);
                                 }}
-                                className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                                className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 cursor-pointer"
                                 title="Dismiss notification"
                               >
                                 <X size={16} />
