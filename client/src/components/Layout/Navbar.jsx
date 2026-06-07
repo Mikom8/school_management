@@ -62,6 +62,11 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
   };
 
   const handleNotificationClick = async (notification) => {
+    // Mark as read to remove blue badge
+    if (!notification.read) {
+      await markAsRead(notification._id);
+    }
+
     // Close dropdown
     setIsNotificationOpen(false);
 
@@ -69,8 +74,6 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
     if (notification.type === "grade_assigned" || notification.type === "grade_updated") {
       navigate("/grade-report");
     }
-    
-    // Don't delete - only X button should delete notifications
   };
 
   const handleNotificationOpen = async () => {
