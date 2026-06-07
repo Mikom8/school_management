@@ -1268,7 +1268,7 @@ const Dashboard = () => {
             ? "Admin Dashboard"
             : user?.role === "teacher"
               ? "Faculty Dashboard"
-              : "Student Dashboard"}
+              : `${user?.name || "Student"}`}
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mt-2">
           {user?.role === "admin"
