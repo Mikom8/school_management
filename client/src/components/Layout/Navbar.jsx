@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { LogOut, User, Menu, X, Search } from "lucide-react";
+import { LogOut, User, Menu, X, Search, Bell } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
 const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
@@ -61,7 +61,10 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
           {/* Right Section */}
           <div className="flex items-center space-x-3">
             {/* Profile Dropdown */}
-            <div className="relative">
+            <div className="relative flex gap-3">
+              <div>
+                <Bell size={24} className="dark:text-white" />
+              </div>
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                 className="flex items-center space-x-2 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
