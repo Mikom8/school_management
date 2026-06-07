@@ -74,22 +74,42 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
     await deleteNotification(notification._id);
   };
 
+  const handleNotificationOpen = async () => {
+    const wasOpen = isNotificationOpen;
+    setIsNotificationOpen(!isNotificationOpen);
+
+    // Mark all as read when opening dropdown (if there are unread ones)
+    if (!wasOpen && unreadCount > 0) {
+      setUnreadCount(0); // Clear badge immediately for UX
+      
+      // Mark all notifications as read in the database
+      try {
+        await axios.put("/notifications/read-all");
+        // Update local state to reflect read status
+        setNotifications(prev =>
+          prev.map(notif => ({ ...notif, read: true }))
+        );
+      } catch (error) {
+        console.error("Error marking notifications as read:", error);
+      }
+    }
+  };
+
   const markAllAsRead = async () => {
     try {
       setNotificationLoading(true);
-      await axios.put("/notifications/read-all");
-      
-      // Delete all read notifications from the database
-      const deletePromises = notifications.map(notif => 
+
+      // Delete all notifications from the database
+      const deletePromises = notifications.map(notif =>
         axios.delete(`/notifications/${notif._id}`).catch(err => console.error("Error deleting:", err))
       );
       await Promise.all(deletePromises);
-      
+
       // Clear local state
       setNotifications([]);
       setUnreadCount(0);
     } catch (error) {
-      console.error("Error marking all as read:", error);
+      console.error("Error clearing all notifications:", error);
     } finally {
       setNotificationLoading(false);
     }
@@ -162,7 +182,7 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
             {/* Notifications */}
             <div className="relative">
               <button
-                onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                onClick={handleNotificationOpen}
                 className="relative p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               >
                 {unreadCount > 0 && (
@@ -181,7 +201,7 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
                     <h3 className="font-semibold text-gray-900 dark:text-white">
                       Notifications
                     </h3>
-                    {unreadCount > 0 && (
+                    {notifications.length > 1 && (
                       <button
                         onClick={markAllAsRead}
                         disabled={notificationLoading}
@@ -204,20 +224,14 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
                       notifications.map((notification) => (
                         <div
                           key={notification._id}
-                          className={`group p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
-                            !notification.read ? "bg-blue-50 dark:bg-blue-900/10" : ""
-                          }`}
+                          className="group p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                         >
                           <div className="flex items-start justify-between">
-                            <div 
+                            <div
                               className="flex-1 min-w-0 cursor-pointer"
                               onClick={() => handleNotificationClick(notification)}
                             >
-                              <p className={`text-sm font-medium ${
-                                !notification.read
-                                  ? "text-gray-900 dark:text-white"
-                                  : "text-gray-700 dark:text-gray-300"
-                              }`}>
+                              <p className="text-sm font-medium text-gray-900 dark:text-white">
                                 {notification.title}
                               </p>
                               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -228,18 +242,16 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
                               </p>
                             </div>
                             <div className="flex items-center ml-2 space-x-2">
-                              {!notification.read && (
-                                <span className="w-2 h-2 bg-blue-600 rounded-full shrink-0 mt-1"></span>
-                              )}
+                              <span className="w-2 h-2 bg-blue-600 rounded-full shrink-0 mt-1"></span>
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   deleteNotification(notification._id);
                                 }}
-                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-all text-red-500 dark:text-red-400"
-                                title="Delete notification"
+                                className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                                title="Dismiss notification"
                               >
-                                <Trash2 size={14} />
+                                <X size={16} />
                               </button>
                             </div>
                           </div>
