@@ -69,9 +69,8 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
     if (notification.type === "grade_assigned" || notification.type === "grade_updated") {
       navigate("/grade-report");
     }
-
-    // Delete the notification after navigation
-    await deleteNotification(notification._id);
+    
+    // Don't delete - only X button should delete notifications
   };
 
   const handleNotificationOpen = async () => {
