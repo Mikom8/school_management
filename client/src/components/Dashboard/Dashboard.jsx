@@ -403,8 +403,8 @@ const Dashboard = () => {
   const fetchStudentSchedule = async () => {
     try {
       setScheduleLoading(true);
-      const gradesResponse = await axios.get('/grades/my-grades');
-      const grades = gradesResponse.data.data.grades || [];
+      const coursesResponse = await axios.get('/courses/my-courses');
+      const enrolledCourses = coursesResponse.data.data || [];
 
       // Get current day and time
       const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -412,15 +412,8 @@ const Dashboard = () => {
       const today = dayNames[now.getDay()];
       const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-      // Get unique courses and filter for today
-      const enrolledCoursesMap = new Map();
-      grades.forEach(grade => {
-        if (grade.course && grade.course._id) {
-          enrolledCoursesMap.set(grade.course._id, grade.course);
-        }
-      });
-
-      const todaysClasses = Array.from(enrolledCoursesMap.values())
+      // Filter courses scheduled for today
+      const todaysClasses = enrolledCourses
         .filter(course => course.schedule?.days?.includes(today))
         .map(course => ({
           title: `${course.code} - ${course.name}`,

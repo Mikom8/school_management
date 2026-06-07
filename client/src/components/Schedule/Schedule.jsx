@@ -36,21 +36,13 @@ const Schedule = () => {
           course: course
         }));
       } else if (user?.role === 'student') {
-        // Fetch student's grades to see which courses they're enrolled in
+        // Fetch student's enrolled courses
         try {
-          const gradesResponse = await axios.get('/grades/my-grades');
-          const grades = gradesResponse.data.data.grades || [];
-
-          // Get unique courses from grades (enrolled courses)
-          const enrolledCoursesMap = new Map();
-          grades.forEach(grade => {
-            if (grade.course && grade.course._id) {
-              enrolledCoursesMap.set(grade.course._id, grade.course);
-            }
-          });
+          const coursesResponse = await axios.get('/courses/my-courses');
+          const enrolledCourses = coursesResponse.data.data || [];
 
           // Convert to schedule events
-          scheduleData = Array.from(enrolledCoursesMap.values()).map(course => ({
+          scheduleData = enrolledCourses.map(course => ({
             id: course._id,
             title: `${course.name}`,
             type: 'lecture',
@@ -60,7 +52,7 @@ const Schedule = () => {
             course: course
           }));
         } catch (error) {
-          // If no grades yet, show empty schedule
+          console.error('Error fetching student courses:', error);
           scheduleData = [];
         }
       } else {
@@ -151,9 +143,9 @@ const Schedule = () => {
             {days.map(day => {
               const events = getEventsForDay(day);
               return (
-                <div key={day} className="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden min-w-[280px] md:min-w-0 flex-shrink-0">
+                <div key={day} className="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden min-w-[280px] md:min-w-0 shrink-0">
                   {/* Day Header */}
-                  <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-3 font-semibold text-center">
+                  <div className="bg-linear-to-r from-blue-500 to-blue-600 text-white p-3 font-semibold text-center">
                     {day}
                   </div>
 

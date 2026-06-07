@@ -183,7 +183,7 @@ const Settings = () => {
                 {/* Error Message */}
                 {passwordError && (
                   <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg flex items-start space-x-2">
-                    <Shield size={18} className="mt-0.5 flex-shrink-0" />
+                    <Shield size={18} className="mt-0.5 shrink-0" />
                     <p className="text-sm">{passwordError}</p>
                   </div>
                 )}
@@ -446,7 +446,7 @@ const Settings = () => {
               {/* Error Message */}
               {passwordError && (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg flex items-start space-x-2">
-                  <Shield size={18} className="mt-0.5 flex-shrink-0" />
+                  <Shield size={18} className="mt-0.5 shrink-0" />
                   <p className="text-sm">{passwordError}</p>
                 </div>
               )}
