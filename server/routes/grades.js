@@ -4,6 +4,7 @@ const Grade = require("../models/Grade");
 const Course = require("../models/Course");
 const Student = require("../models/Student");
 const User = require("../models/User");
+const Notification = require("../models/Notification");
 const { auth, authorize } = require("../middleware/auth"); // Add authorize import
 const { body, validationResult } = require("express-validator");
 
@@ -274,6 +275,31 @@ router.post(
           select: "name",
         },
       });
+
+      // Create notification for student
+      try {
+        const notificationTitle = existingGrade ? "Grade Updated" : "New Grade Posted";
+        const notificationMessage = `Your grade for ${course.name} (${course.code}) has been ${existingGrade ? 'updated' : 'posted'}: ${finalGrade || 'Pending'} ${finalPercentage ? `(${finalPercentage}%)` : ''}`;
+        
+        await Notification.create({
+          user: student.user._id,
+          type: existingGrade ? "grade_updated" : "grade_assigned",
+          title: notificationTitle,
+          message: notificationMessage,
+          data: {
+            gradeId: result._id,
+            courseId: course._id,
+            courseName: course.name,
+            courseCode: course.code,
+            grade: finalGrade,
+            percentage: finalPercentage,
+            semester: semester,
+          },
+        });
+      } catch (notificationError) {
+        console.error("Error creating notification:", notificationError);
+        // Don't fail the grade submission if notification fails
+      }
 
       res.json({
         success: true,

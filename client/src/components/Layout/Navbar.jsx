@@ -1,11 +1,74 @@
-import React, { useState } from "react";
-import { LogOut, User, Menu, X, Search, Bell } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { LogOut, User, Menu, X, Search, Bell, Check } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
+import axios from "axios";
 
 const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
   const { user, logout } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationLoading, setNotificationLoading] = useState(false);
+
+  // Fetch notifications
+  useEffect(() => {
+    if (user) {
+      fetchNotifications();
+    }
+  }, [user]);
+
+  const fetchNotifications = async () => {
+    try {
+      const response = await axios.get("/notifications?limit=10");
+      setNotifications(response.data.data || []);
+      setUnreadCount(response.data.unreadCount || 0);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    }
+  };
+
+  const markAsRead = async (notificationId) => {
+    try {
+      await axios.put(`/notifications/${notificationId}/read`);
+      // Update local state
+      setNotifications(prev =>
+        prev.map(notif =>
+          notif._id === notificationId ? { ...notif, read: true } : notif
+        )
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      setNotificationLoading(true);
+      await axios.put("/notifications/read-all");
+      setNotifications(prev =>
+        prev.map(notif => ({ ...notif, read: true }))
+      );
+      setUnreadCount(0);
+    } catch (error) {
+      console.error("Error marking all as read:", error);
+    } finally {
+      setNotificationLoading(false);
+    }
+  };
+
+  const formatTime = (timestamp) => {
+    const now = new Date();
+    const notifTime = new Date(timestamp);
+    const diffInMinutes = Math.floor((now - notifTime) / (1000 * 60));
+
+    if (diffInMinutes < 1) return "Just now";
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
+    return notifTime.toLocaleDateString();
+  };
 
   return (
     <>
@@ -60,40 +123,86 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
 
           {/* Right Section */}
           <div className="flex items-center space-x-3">
-            {/* Profile Dropdown */}
-            <div className="relative flex gap-3 items-center">
-              <div className="hover:bg-gray-600 p-3 rounded-full cursor-pointer relative">
-                <span className="text-white text-xs px-1 rounded-full bg-red-600 absolute right-0 top-0"></span>
-                <Bell size={24} className="dark:text-white" />
-                
-                <div>
-                  <div className="absolute top-10 right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50">
-                    <div className="p-4 border-b border-gray-100 dark:border-gray-700">
-                      <h3 className="font-semibold text-gray-900 dark:text-white">
-                        Notifications
-                      </h3>
-                    </div>
-                    <div className="max-h-64 overflow-y-auto">
-                      <div className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer">
-                        <p className="text-sm text-gray-900 dark:text-white">
-                          New message from John Doe
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          2 minutes ago
-                        </p>
+            {/* Notifications */}
+            <div className="relative">
+              <button
+                onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                className="relative p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+                <Bell size={20} className="text-gray-600 dark:text-white" />
+              </button>
+
+              {/* Notification Dropdown */}
+              {isNotificationOpen && (
+                <div className="absolute top-12 right-0 w-80 md:w-96 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 max-h-128 flex flex-col">
+                  {/* Header */}
+                  <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                    <h3 className="font-semibold text-gray-900 dark:text-white">
+                      Notifications
+                    </h3>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={markAllAsRead}
+                        disabled={notificationLoading}
+                        className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center space-x-1"
+                      >
+                        <Check size={14} />
+                        <span>Mark all read</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Notification List */}
+                  <div className="overflow-y-auto flex-1">
+                    {notifications.length === 0 ? (
+                      <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                        <Bell size={48} className="mx-auto mb-3 opacity-30" />
+                        <p className="text-sm">No notifications yet</p>
                       </div>
-                      <div className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer">
-                        <p className="text-sm text-gray-900 dark:text-white">
-                          Assignment submitted
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          1 hour ago
-                        </p>
-                      </div>
-                    </div>
+                    ) : (
+                      notifications.map((notification) => (
+                        <div
+                          key={notification._id}
+                          onClick={() => !notification.read && markAsRead(notification._id)}
+                          className={`p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors ${
+                            !notification.read ? "bg-blue-50 dark:bg-blue-900/10" : ""
+                          }`}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-sm font-medium ${
+                                !notification.read
+                                  ? "text-gray-900 dark:text-white"
+                                  : "text-gray-700 dark:text-gray-300"
+                              }`}>
+                                {notification.title}
+                              </p>
+                              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                {notification.message}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                {formatTime(notification.createdAt)}
+                              </p>
+                            </div>
+                            {!notification.read && (
+                              <span className="ml-2 w-2 h-2 bg-blue-600 rounded-full shrink-0 mt-1"></span>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
-              </div>
+              )}
+            </div>
+
+            {/* Profile Dropdown */}
+            <div className="relative flex items-center">
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                 className="flex items-center space-x-2 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -138,11 +247,14 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
           </div>
         </div>
 
-        {/* Close dropdown when clicking outside */}
-        {isProfileOpen && (
+        {/* Close dropdowns when clicking outside */}
+        {(isProfileOpen || isNotificationOpen) && (
           <div
             className="fixed inset-0 z-30"
-            onClick={() => setIsProfileOpen(false)}
+            onClick={() => {
+              setIsProfileOpen(false);
+              setIsNotificationOpen(false);
+            }}
           />
         )}
       </nav>
