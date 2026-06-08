@@ -945,7 +945,7 @@ const CourseManagement = () => {
                       {dept.code ? ` · ${dept.code}` : ""}
                     </p>
                   </div>
-                  <div className="hidden sm:block h-px flex-1 bg-gradient-to-r from-gray-200 dark:from-gray-700 to-transparent" />
+                  <div className="hidden sm:block h-px flex-1 bg-linear-to-r from-gray-200 dark:from-gray-700 to-transparent" />
                 </div>
 
                 {/* Courses grid */}

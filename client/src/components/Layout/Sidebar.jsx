@@ -73,6 +73,12 @@ const Sidebar = ({ isMobileOpen, onMobileClose, onSidebarToggle }) => {
       roles: ["admin", "teacher", "student"],
     },
     {
+      name: "Assigment and Handout",
+      href: "/assignment-and-handout",
+      icon: Calendar,
+      roles: ["teacher", "student"],
+    },
+    {
       name: "Reports",
       href: "/reports",
       icon: BarChart3,
@@ -139,8 +145,8 @@ const Sidebar = ({ isMobileOpen, onMobileClose, onSidebarToggle }) => {
 
     if (isCollapsed) {
       return `${baseClasses} justify-center p-3 mx-2 ${isActive
-          ? "bg-linear-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25"
-          : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:scale-105"
+        ? "bg-linear-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25"
+        : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:scale-105"
         } ${hoveredItem === itemName
           ? "ring-2 ring-blue-200 dark:ring-blue-800"
           : ""
@@ -148,8 +154,8 @@ const Sidebar = ({ isMobileOpen, onMobileClose, onSidebarToggle }) => {
     }
 
     return `${baseClasses} px-4 py-3 ${isActive
-        ? "bg-linear-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25"
-        : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:translate-x-2"
+      ? "bg-linear-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25"
+      : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:translate-x-2"
       } ${hoveredItem === itemName ? "ring-2 ring-blue-200 dark:ring-blue-800" : ""
       }`;
   };
