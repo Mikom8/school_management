@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, FileText, Calendar, AlertCircle, Plus, Edit2, Trash2, Download, Upload } from 'lucide-react';
+import { X, FileText, Calendar, Plus, Trash2, Download, Upload } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
 import Toast from '../Common/Toast';
@@ -141,6 +141,16 @@ const AssignmentManagement = () => {
         try {
             setLoading(true);
             const response = await axios.get('/assignments');
+            console.log('📚 Fetched assignments:', response.data.data);
+            response.data.data?.forEach(assignment => {
+                console.log(`Assignment: ${assignment.title}`);
+                console.log('Files:', assignment.files);
+                if (assignment.files && assignment.files.length > 0) {
+                    assignment.files.forEach(file => {
+                        console.log(`  - File: ${file.name}, URL: ${file.url}`);
+                    });
+                }
+            });
             setAssignments(response.data.data || []);
         } catch (error) {
             console.error('Error fetching assignments:', error);
@@ -373,38 +383,31 @@ const AssignmentManagement = () => {
                                                 {assignment.files.map((file, index) => (
                                                     <div
                                                         key={index}
-                                                        className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded border border-gray-200 dark:border-gray-600"
+                                                        className="flex items-center justify-between gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded border border-gray-200 dark:border-gray-600"
                                                     >
                                                         <div className="flex items-center gap-2 min-w-0 flex-1">
-                                                            <FileText size={16} className="text-blue-500 shrink-0" />
-                                                            <span className="text-sm text-gray-700 dark:text-gray-300 truncate">
-                                                                {file.name}
-                                                            </span>
-                                                            {file.size && (
-                                                                <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
-                                                                    ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                                                            <FileText size={18} className="text-blue-500 shrink-0" />
+                                                            <div className="min-w-0 flex-1">
+                                                                <span className="text-sm text-gray-700 dark:text-gray-300 block truncate">
+                                                                    {file.name}
                                                                 </span>
-                                                            )}
+                                                                {file.size && (
+                                                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                         <a
                                                             href={file.url}
                                                             download
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            onClick={async () => {
-                                                                // Track download for students
-                                                                if (user?.role === 'student') {
-                                                                    try {
-                                                                        await axios.post(`/assignments/${assignment._id}/download`);
-                                                                    } catch (error) {
-                                                                        console.error('Failed to track download:', error);
-                                                                    }
-                                                                }
-                                                            }}
-                                                            className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors shrink-0"
+                                                            className="flex items-center gap-2 px-3 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shrink-0"
                                                             title="Download file"
                                                         >
                                                             <Download size={16} />
+                                                            <span className="text-sm font-medium">Download</span>
                                                         </a>
                                                     </div>
                                                 ))}
