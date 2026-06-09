@@ -50,11 +50,12 @@ const AssignmentManagement = () => {
                             ':original': {
                                 robot: '/upload/handle'
                             },
-                            'store_to_backblaze': {
+                            // Store to Backblaze B2 permanently
+                            'store_to_b2': {
                                 use: ':original',
-                                robot: '/s3/store',
+                                robot: '/backblaze/store',
                                 credentials: 'backblaze_b2',
-                                path: 'assignments/${fields.course}/${file.basename}',
+                                path: 'assignments/${fields.course}/${file.name}',
                             }
                         },
                         notify_url: 'http://localhost:5000/api/assignments/webhook',
@@ -65,13 +66,17 @@ const AssignmentManagement = () => {
                         }),
                     },
                 },
-                waitForEncoding: true,
-                waitForMetadata: true,
+                waitForEncoding: false,
+                waitForMetadata: false,
             });
 
         // Uppy event listeners
         uppyInstance.on('file-added', (file) => {
             console.log('Added file:', file.name);
+        });
+
+        uppyInstance.on('transloadit:assembly-created', (assembly) => {
+            console.log('Transloadit assembly created:', assembly);
         });
 
         uppyInstance.on('transloadit:complete', (assembly) => {
