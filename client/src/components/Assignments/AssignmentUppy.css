@@ -1,0 +1,134 @@
+/* Custom Uppy styling for dark mode */
+.uppy-wrapper {
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+/* Dark mode adjustments */
+.dark .uppy-Dashboard {
+  background-color: rgb(31, 41, 55) !important;
+  border-color: rgb(75, 85, 99) !important;
+}
+
+.dark .uppy-Dashboard-inner {
+  background-color: rgb(31, 41, 55) !important;
+}
+
+.dark .uppy-Dashboard-AddFiles {
+  background-color: rgb(31, 41, 55) !important;
+  border-color: rgb(75, 85, 99) !important;
+}
+
+.dark .uppy-Dashboard-AddFiles-title {
+  color: rgb(243, 244, 246) !important;
+}
+
+.dark .uppy-Dashboard-note {
+  color: rgb(156, 163, 175) !important;
+}
+
+.dark .uppy-DashboardItem {
+  background-color: rgb(55, 65, 81) !important;
+  border-color: rgb(75, 85, 99) !important;
+}
+
+.dark .uppy-DashboardItem-name {
+  color: rgb(243, 244, 246) !important;
+}
+
+.dark .uppy-DashboardItem-status {
+  color: rgb(156, 163, 175) !important;
+}
+
+.dark .uppy-Dashboard-Item-previewInnerWrap {
+  background-color: rgb(55, 65, 81) !important;
+}
+
+.dark .uppy-DashboardContent-bar {
+  background-color: rgb(31, 41, 55) !important;
+  border-color: rgb(75, 85, 99) !important;
+}
+
+.dark .uppy-DashboardContent-title {
+  color: rgb(243, 244, 246) !important;
+}
+
+.dark .uppy-Dashboard-browse {
+  color: rgb(96, 165, 250) !important;
+}
+
+.dark .uppy-Dashboard-browse:hover {
+  color: rgb(59, 130, 246) !important;
+}
+
+/* Progress bar colors */
+.dark .uppy-ProgressBar {
+  background-color: rgb(55, 65, 81) !important;
+}
+
+.dark .uppy-ProgressBar-fill {
+  background-color: rgb(59, 130, 246) !important;
+}
+
+/* Button styling */
+.dark .uppy-StatusBar-actionBtn--upload {
+  background-color: rgb(59, 130, 246) !important;
+  color: white !important;
+}
+
+.dark .uppy-StatusBar-actionBtn--upload:hover {
+  background-color: rgb(37, 99, 235) !important;
+}
+
+.dark .uppy-StatusBar {
+  background-color: rgb(31, 41, 55) !important;
+  border-color: rgb(75, 85, 99) !important;
+}
+
+.dark .uppy-StatusBar-content {
+  color: rgb(243, 244, 246) !important;
+}
+
+/* Remove buttons */
+.dark .uppy-DashboardItem-action--remove {
+  color: rgb(239, 68, 68) !important;
+}
+
+.dark .uppy-DashboardItem-action--remove:hover {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+}
+
+/* Drag over state */
+.dark .uppy-Dashboard--isDraggingOver .uppy-Dashboard-AddFiles {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+  border-color: rgb(59, 130, 246) !important;
+}
+
+/* Light mode - ensure good contrast */
+.uppy-Dashboard {
+  font-family: inherit;
+}
+
+.uppy-Dashboard-browse {
+  color: rgb(59, 130, 246);
+  font-weight: 500;
+}
+
+.uppy-Dashboard-browse:hover {
+  color: rgb(37, 99, 235);
+}
+
+.uppy-StatusBar-actionBtn--upload {
+  background-color: rgb(59, 130, 246);
+}
+
+.uppy-StatusBar-actionBtn--upload:hover {
+  background-color: rgb(37, 99, 235);
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .uppy-Dashboard-inner {
+    min-height: 300px !important;
+  }
+}
