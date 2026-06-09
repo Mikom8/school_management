@@ -185,6 +185,85 @@ router.post("/", auth, authorize("teacher"), async (req, res) => {
     await assignment.populate("course", "name code");
     await assignment.populate("teacher", "name email");
 
+    // Create notifications for students
+    try {
+      const Student = require("../models/Student");
+      const Notification = require("../models/Notification");
+      
+      console.log(`🔍 Looking up course: ${course}`);
+      const courseDoc = await Course.findById(course);
+      
+      if (!courseDoc) {
+        console.error(`❌ Course not found: ${course}`);
+        return res.status(201).json({
+          success: true,
+          data: assignment,
+          warning: "Assignment created but course not found for notifications"
+        });
+      }
+
+      console.log(`📚 Course found: ${courseDoc.name}`);
+      
+      // Find ALL students under this teacher (all courses in the same department)
+      // Get all courses taught by this teacher in the same department
+      const teacherCourses = await Course.find({
+        teacher: req.user._id,
+        department: courseDoc.department,
+      });
+
+      console.log(`👨‍🏫 Teacher has ${teacherCourses.length} courses in this department`);
+
+      // Collect all unique grade/semester combinations from teacher's courses
+      const studentsSet = new Set();
+      
+      for (const teacherCourse of teacherCourses) {
+        const students = await Student.find({
+          department: teacherCourse.department,
+          grade: teacherCourse.year,
+          semester: teacherCourse.semester,
+        }).populate("user");
+
+        students.forEach(student => {
+          if (student.user) {
+            studentsSet.add(JSON.stringify({
+              userId: student.user._id.toString(),
+              name: student.name
+            }));
+          }
+        });
+      }
+
+      // Convert back to array of unique students
+      const uniqueStudents = Array.from(studentsSet).map(s => JSON.parse(s));
+      
+      console.log(`📢 Found ${uniqueStudents.length} unique students to notify across all teacher's courses`);
+
+      if (uniqueStudents.length === 0) {
+        console.log("⚠️ No students found under this teacher");
+      }
+
+      const notificationPromises = uniqueStudents.map((student) => {
+        console.log(`📬 Creating notification for student: ${student.name} (${student.userId})`);
+        return Notification.create({
+          user: student.userId,
+          type: type === 'assignment' ? 'assignment_posted' : 'handout_posted',
+          title: `New ${type === 'assignment' ? 'Assignment' : 'Handout'}: ${title}`,
+          message: `${req.user.name} posted a new ${type} in ${courseDoc.name}${dueDate ? ` - Due: ${new Date(dueDate).toLocaleDateString()}` : ''}`,
+          data: {
+            assignmentId: assignment._id,
+            courseId: course,
+            teacherId: req.user._id,
+          },
+        });
+      });
+
+      const results = await Promise.all(notificationPromises);
+      console.log(`✅ Successfully created ${results.length} notifications for all students under teacher`);
+    } catch (notificationError) {
+      console.error("❌ Notification error:", notificationError);
+      console.error("Stack trace:", notificationError.stack);
+    }
+
     res.status(201).json({
       success: true,
       data: assignment,

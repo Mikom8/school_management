@@ -218,6 +218,45 @@ const AssignmentManagement = () => {
             const result = await uppy.upload();
 
             if (result.successful.length > 0) {
+                console.log('Upload result:', result);
+                
+                // Extract file URLs from Transloadit result
+                const transloaditResult = result.successful[0].response?.body;
+                console.log('Transloadit response:', transloaditResult);
+                
+                const uploadedFiles = [];
+                if (transloaditResult?.results) {
+                    Object.keys(transloaditResult.results).forEach((stepName) => {
+                        const stepResults = transloaditResult.results[stepName];
+                        if (Array.isArray(stepResults)) {
+                            stepResults.forEach((file) => {
+                                uploadedFiles.push({
+                                    name: file.name,
+                                    url: file.ssl_url || file.url,
+                                    size: file.size,
+                                    type: file.mime,
+                                });
+                            });
+                        }
+                    });
+                }
+
+                console.log('Extracted files:', uploadedFiles);
+
+                // Manually create assignment in backend since webhook might not work on localhost
+                try {
+                    await axios.post('/assignments', {
+                        type: formData.type,
+                        title: formData.title,
+                        description: formData.description || '',
+                        course: formData.course,
+                        dueDate: formData.dueDate || null,
+                        files: uploadedFiles,
+                    });
+                } catch (backendError) {
+                    console.error('Backend save error:', backendError);
+                }
+
                 showToast(`${formData.type === 'assignment' ? 'Assignment' : 'Handout'} created successfully!`, 'success');
                 setShowCreateModal(false);
                 resetForm();
@@ -324,6 +363,53 @@ const AssignmentManagement = () => {
                                         <p className="text-xs text-gray-500 dark:text-gray-500">
                                             Course: {assignment.course?.name || 'N/A'}
                                         </p>
+                                        
+                                        {/* Files List */}
+                                        {assignment.files && assignment.files.length > 0 && (
+                                            <div className="mt-3 space-y-2">
+                                                <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                                    Attached Files ({assignment.files.length}):
+                                                </p>
+                                                {assignment.files.map((file, index) => (
+                                                    <div
+                                                        key={index}
+                                                        className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded border border-gray-200 dark:border-gray-600"
+                                                    >
+                                                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                            <FileText size={16} className="text-blue-500 shrink-0" />
+                                                            <span className="text-sm text-gray-700 dark:text-gray-300 truncate">
+                                                                {file.name}
+                                                            </span>
+                                                            {file.size && (
+                                                                <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
+                                                                    ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <a
+                                                            href={file.url}
+                                                            download
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            onClick={async () => {
+                                                                // Track download for students
+                                                                if (user?.role === 'student') {
+                                                                    try {
+                                                                        await axios.post(`/assignments/${assignment._id}/download`);
+                                                                    } catch (error) {
+                                                                        console.error('Failed to track download:', error);
+                                                                    }
+                                                                }
+                                                            }}
+                                                            className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors shrink-0"
+                                                            title="Download file"
+                                                        >
+                                                            <Download size={16} />
+                                                        </a>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="flex items-center gap-2">
                                         {user?.role === 'teacher' && (
