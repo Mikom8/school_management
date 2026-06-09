@@ -66,8 +66,8 @@ const AssignmentManagement = () => {
                         }),
                     },
                 },
-                waitForEncoding: false,
-                waitForMetadata: false,
+                waitForEncoding: true, // Changed to true - wait for Backblaze storage
+                waitForMetadata: true, // Changed to true - wait for file metadata
             });
 
         // Uppy event listeners
@@ -227,35 +227,69 @@ const AssignmentManagement = () => {
             // Start upload
             const result = await uppy.upload();
 
+            console.log('🔍 Full upload result:', result);
+            console.log('🔍 Transloadit assemblies:', result.transloadit);
+
             if (result.successful.length > 0) {
-                console.log('Upload result:', result);
+                console.log('✅ Upload successful, files:', result.successful);
                 
-                // Extract file URLs from Transloadit result
-                const transloaditResult = result.successful[0].response?.body;
-                console.log('Transloadit response:', transloaditResult);
-                
+                // Extract file URLs from Transloadit assemblies (not from individual file responses)
                 const uploadedFiles = [];
-                if (transloaditResult?.results) {
-                    Object.keys(transloaditResult.results).forEach((stepName) => {
-                        const stepResults = transloaditResult.results[stepName];
-                        if (Array.isArray(stepResults)) {
-                            stepResults.forEach((file) => {
-                                uploadedFiles.push({
-                                    name: file.name,
-                                    url: file.ssl_url || file.url,
-                                    size: file.size,
-                                    type: file.mime,
-                                });
+                
+                // Check the transloadit array for assembly results
+                if (result.transloadit && result.transloadit.length > 0) {
+                    result.transloadit.forEach((assembly, assemblyIndex) => {
+                        console.log(`🏭 Assembly ${assemblyIndex + 1}:`, assembly);
+                        
+                        if (assembly.results) {
+                            console.log('  ✅ Assembly has results:', assembly.results);
+                            
+                            // Look through all steps in the assembly
+                            Object.keys(assembly.results).forEach((stepName) => {
+                                console.log(`  📍 Step: ${stepName}`);
+                                const stepResults = assembly.results[stepName];
+                                console.log(`     Step results:`, stepResults);
+                                
+                                if (Array.isArray(stepResults)) {
+                                    stepResults.forEach((fileResult) => {
+                                        console.log('     📦 File result:', fileResult);
+                                        uploadedFiles.push({
+                                            name: fileResult.name,
+                                            url: fileResult.ssl_url || fileResult.url,
+                                            size: fileResult.size,
+                                            type: fileResult.mime,
+                                        });
+                                    });
+                                }
                             });
+                        } else {
+                            console.warn('  ⚠️ Assembly has no results property');
                         }
                     });
+                } else {
+                    console.warn('⚠️ No transloadit assemblies found in result');
                 }
 
-                console.log('Extracted files:', uploadedFiles);
+                console.log('📋 Final extracted files:', uploadedFiles);
+
+                if (uploadedFiles.length === 0) {
+                    console.warn('⚠️ No files extracted from Transloadit response!');
+                    showToast('Files uploaded but URLs not found. Please try again.', 'error');
+                    return;
+                }
 
                 // Manually create assignment in backend since webhook might not work on localhost
                 try {
-                    await axios.post('/assignments', {
+                    console.log('💾 Saving to backend:', {
+                        type: formData.type,
+                        title: formData.title,
+                        description: formData.description,
+                        course: formData.course,
+                        dueDate: formData.dueDate,
+                        filesCount: uploadedFiles.length,
+                    });
+                    
+                    const saveResponse = await axios.post('/assignments', {
                         type: formData.type,
                         title: formData.title,
                         description: formData.description || '',
@@ -263,8 +297,13 @@ const AssignmentManagement = () => {
                         dueDate: formData.dueDate || null,
                         files: uploadedFiles,
                     });
+                    
+                    console.log('✅ Backend save response:', saveResponse.data);
                 } catch (backendError) {
-                    console.error('Backend save error:', backendError);
+                    console.error('❌ Backend save error:', backendError);
+                    console.error('Error response:', backendError.response?.data);
+                    showToast('Files uploaded but failed to save assignment', 'error');
+                    return;
                 }
 
                 showToast(`${formData.type === 'assignment' ? 'Assignment' : 'Handout'} created successfully!`, 'success');
