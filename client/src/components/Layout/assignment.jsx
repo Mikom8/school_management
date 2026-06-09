@@ -14,6 +14,19 @@ const Assignment = () => {
                     </p>
                 </div>
             </div>
+
+            {/* action */}
+            <div>
+                <form action="">
+                    <label htmlFor="objecttype">Type
+                        <select name="typeofobject" id="objecttype" className="input" required>
+                            <option value="" selected disabled>Select</option>
+                            <option value="">Assignment</option>
+                            <option value="">Handout</option>
+                        </select>
+                    </label>
+                </form>
+            </div>
         </>
     )
 };

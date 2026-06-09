@@ -184,7 +184,7 @@ const StudentManagement = () => {
         student.course?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         deptName.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesGrade = !filterGrade || student.grade === filterGrade;
-      
+
       // For teachers, filter by course using department, year, and semester
       let matchesCourse = true;
       if (user?.role === "teacher") {
@@ -193,17 +193,17 @@ const StudentManagement = () => {
           const selectedCourse = teacherCourses.find(c => c._id === filterCourse);
           if (selectedCourse) {
             // Match by department, year (grade), and semester
-            const studentDeptId = typeof student.department === "object" 
-              ? student.department?._id 
+            const studentDeptId = typeof student.department === "object"
+              ? student.department?._id
               : student.department;
             const courseDeptId = typeof selectedCourse.department === "object"
               ? selectedCourse.department?._id
               : selectedCourse.department;
-            
+
             const deptMatch = studentDeptId === courseDeptId;
             const yearMatch = student.grade === selectedCourse.year;
             const semesterMatch = student.semester === selectedCourse.semester;
-            
+
             matchesCourse = deptMatch && yearMatch && semesterMatch;
           } else {
             matchesCourse = false;
@@ -211,22 +211,22 @@ const StudentManagement = () => {
         } else {
           // "All Courses" - show students matching any of teacher's courses
           matchesCourse = teacherCourses.some(course => {
-            const studentDeptId = typeof student.department === "object" 
-              ? student.department?._id 
+            const studentDeptId = typeof student.department === "object"
+              ? student.department?._id
               : student.department;
             const courseDeptId = typeof course.department === "object"
               ? course.department?._id
               : course.department;
-            
+
             const deptMatch = studentDeptId === courseDeptId;
             const yearMatch = student.grade === course.year;
             const semesterMatch = student.semester === course.semester;
-            
+
             return deptMatch && yearMatch && semesterMatch;
           });
         }
       }
-      
+
       // For admin, use grade filter; for teacher, use course filter
       if (user?.role === "teacher") {
         return matchesSearch && matchesCourse;
@@ -698,24 +698,21 @@ const StudentManagement = () => {
           className={`fixed top-4 right-4 z-50 max-w-sm w-full animate-in slide-in-from-right-full duration-500`}
         >
           <div
-            className={`${getNotificationStyles(notification.type).bg} ${
-              getNotificationStyles(notification.type).border
-            } rounded-lg border p-4 shadow-lg`}
+            className={`${getNotificationStyles(notification.type).bg} ${getNotificationStyles(notification.type).border
+              } rounded-lg border p-4 shadow-lg`}
           >
             <div className="flex items-start space-x-3">
               {getNotificationStyles(notification.type).icon}
               <div className="flex-1 min-w-0">
                 <p
-                  className={`font-medium ${
-                    getNotificationStyles(notification.type).text
-                  }`}
+                  className={`font-medium ${getNotificationStyles(notification.type).text
+                    }`}
                 >
                   {notification.title}
                 </p>
                 <p
-                  className={`mt-1 text-sm ${
-                    getNotificationStyles(notification.type).text
-                  } opacity-90`}
+                  className={`mt-1 text-sm ${getNotificationStyles(notification.type).text
+                    } opacity-90`}
                 >
                   {notification.message}
                 </p>
@@ -740,7 +737,7 @@ const StudentManagement = () => {
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                <u>{gradeReportData.student.user?.name}</u> <span className="block text-xs">Grade Report</span>
+                  <u>{gradeReportData.student.user?.name}</u> <span className="block text-xs">Grade Report</span>
                 </h2>
                 <button
                   onClick={() => {
@@ -829,10 +826,10 @@ const StudentManagement = () => {
                                 {grade.grade}
                               </span>
                               {grade.percentage !== undefined && (
-                              <span className="ml-2 text-sm dark:text-white">
-                                ({grade.percentage})
-                              </span>
-                            )}
+                                <span className="ml-2 text-sm dark:text-white">
+                                  ({grade.percentage})
+                                </span>
+                              )}
                             </td>
                             <td className="py-3 px-4 dark:text-white/80">
                               {grade.course?.credits || 0}
@@ -1122,8 +1119,8 @@ const StudentManagement = () => {
             Student Management
           </h1>
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-2">
-            {user?.role === "teacher" 
-              ? "View students enrolled in your courses" 
+            {user?.role === "teacher"
+              ? "View students enrolled in your courses"
               : "Manage college student records and information"}
           </p>
         </div>
@@ -1221,7 +1218,7 @@ const StudentManagement = () => {
                       onChange={handleInputChange}
                       className="input"
                     >
-                      <option value="">Select Academic Year</option>
+                      <option value="" disabled selected>Select Academic Year</option>
                       {gradeOptions.map((grade) => (
                         <option key={grade} value={grade}>
                           {grade}
@@ -1253,7 +1250,7 @@ const StudentManagement = () => {
                       onChange={handleInputChange}
                       className="input"
                     >
-                      <option value="">Select Semester</option>
+                      <option value="" disabled selected>Select Semester</option>
                       {semesterOptions.map((sem) => (
                         <option key={sem} value={sem}>
                           {sem}
