@@ -20,6 +20,7 @@ const AssignmentManagement = () => {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
     const [uppy, setUppy] = useState(null);
+    const [downloadingFiles, setDownloadingFiles] = useState(new Set());
     const dashboardRef = useRef(null);
 
     const [formData, setFormData] = useState({
@@ -439,7 +440,17 @@ const AssignmentManagement = () => {
                                                         </div>
                                                         <button
                                                             onClick={async () => {
+                                                                const fileKey = `${assignment._id}-${index}`;
+                                                                
+                                                                // Prevent double-click
+                                                                if (downloadingFiles.has(fileKey)) {
+                                                                    return;
+                                                                }
+                                                                
                                                                 try {
+                                                                    // Mark as downloading
+                                                                    setDownloadingFiles(prev => new Set(prev).add(fileKey));
+                                                                    
                                                                     console.log(`🔽 Downloading: ${file.name}`);
                                                                     const response = await axios.get(
                                                                         `/assignments/download/${assignment._id}/${index}`,
@@ -457,16 +468,31 @@ const AssignmentManagement = () => {
                                                                     window.URL.revokeObjectURL(url);
                                                                     
                                                                     console.log(`✅ Download completed: ${file.name}`);
+                                                                    showToast('Download completed!', 'success');
                                                                 } catch (error) {
                                                                     console.error('Download error:', error);
                                                                     showToast('Failed to download file', 'error');
+                                                                } finally {
+                                                                    // Remove from downloading set
+                                                                    setDownloadingFiles(prev => {
+                                                                        const newSet = new Set(prev);
+                                                                        newSet.delete(fileKey);
+                                                                        return newSet;
+                                                                    });
                                                                 }
                                                             }}
-                                                            className="flex items-center gap-2 px-3 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shrink-0"
+                                                            disabled={downloadingFiles.has(`${assignment._id}-${index}`)}
+                                                            className={`flex items-center gap-2 px-3 py-2 text-white rounded-lg transition-colors shrink-0 ${
+                                                                downloadingFiles.has(`${assignment._id}-${index}`)
+                                                                    ? 'bg-gray-400 cursor-not-allowed'
+                                                                    : 'bg-blue-600 hover:bg-blue-700'
+                                                            }`}
                                                             title="Download file"
                                                         >
-                                                            <Download size={16} />
-                                                            <span className="text-sm font-medium">Download</span>
+                                                            <Download size={16} className={downloadingFiles.has(`${assignment._id}-${index}`) ? 'animate-bounce' : ''} />
+                                                            <span className="text-sm font-medium">
+                                                                {downloadingFiles.has(`${assignment._id}-${index}`) ? 'Downloading...' : 'Download'}
+                                                            </span>
                                                         </button>
                                                     </div>
                                                 ))}
