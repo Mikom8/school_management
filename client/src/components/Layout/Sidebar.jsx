@@ -73,9 +73,9 @@ const Sidebar = ({ isMobileOpen, onMobileClose, onSidebarToggle }) => {
       roles: ["admin", "teacher", "student"],
     },
     {
-      name: "Assigment and Handout",
-      href: "/assignment-and-handout",
-      icon: Calendar,
+      name: "Assignments",
+      href: "/assignments",
+      icon: FileText,
       roles: ["teacher", "student"],
     },
     {

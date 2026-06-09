@@ -4,7 +4,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Navbar from "./components/Layout/Navbar";
 import Sidebar from "./components/Layout/Sidebar";
-import Assignment from "./components/Layout/assignment"
+import AssignmentManagement from "./components/Assignments/AssignmentManagement";
 import Dashboard from "./components/Dashboard/Dashboard";
 import StudentManagement from "./components/Students/StudentManagement";
 import TeacherManagement from "./components/Teachers/TeacherManagement";
@@ -149,10 +149,10 @@ function AppContent() {
                 }
               />
               <Route
-                path="/assignment-and-handout"
+                path="/assignments"
                 element={
                   <ProtectedRoute>
-                    <Assignment />
+                    <AssignmentManagement />
                   </ProtectedRoute>
                 }
               />
