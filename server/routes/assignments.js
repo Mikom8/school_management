@@ -45,26 +45,10 @@ router.get("/signature", auth, authorize("teacher"), (req, res) => {
 // @access  Public (called by Transloadit)
 router.post("/webhook", express.json(), async (req, res) => {
   try {
-    console.log("📥 Transloadit webhook received:", req.body);
+    console.log("📥 Transloadit webhook received:", JSON.stringify(req.body, null, 2));
 
     // Transloadit sends the upload result here
     const { transloadit, fields } = req.body;
-
-    // Verify this is from Transloadit (optional but recommended)
-    const crypto = require("crypto");
-    const signature = req.headers["transloadit-signature"];
-    
-    if (signature) {
-      const payload = JSON.stringify(req.body);
-      const expectedSignature = crypto
-        .createHmac("sha384", process.env.TRANSLOADIT_SECRET)
-        .update(Buffer.from(payload, "utf-8"))
-        .digest("hex");
-
-      if (signature !== `sha384:${expectedSignature}`) {
-        return res.status(403).json({ error: "Invalid signature" });
-      }
-    }
 
     // Extract uploaded files from Transloadit response
     const uploadedFiles = [];
@@ -86,17 +70,25 @@ router.post("/webhook", express.json(), async (req, res) => {
       });
     }
 
+    console.log("📦 Uploaded files:", uploadedFiles);
+    console.log("📝 Fields:", fields);
+
     // Extract metadata from fields (sent from frontend)
-    const metadata = JSON.parse(fields.metadata || "{}");
+    const { type, title, description, course, dueDate, teacher } = fields;
+
+    if (!type || !title || !course || !teacher) {
+      console.error("❌ Missing required fields");
+      return res.status(400).json({ error: "Missing required fields" });
+    }
 
     // Create assignment in database
     const assignment = await Assignment.create({
-      type: metadata.type,
-      title: metadata.title,
-      description: metadata.description,
-      course: metadata.course,
-      teacher: metadata.teacher,
-      dueDate: metadata.dueDate,
+      type,
+      title,
+      description: description || '',
+      course,
+      teacher,
+      dueDate: dueDate || null,
       files: uploadedFiles,
     });
 
@@ -104,6 +96,51 @@ router.post("/webhook", express.json(), async (req, res) => {
     await assignment.populate("teacher", "name email");
 
     console.log("✅ Assignment created:", assignment._id);
+
+    // Create notifications for students in the course
+    try {
+      const Student = require("../models/Student");
+      const Notification = require("../models/Notification");
+      
+      // Find the course details
+      const courseDoc = await Course.findById(course);
+      
+      if (courseDoc) {
+        // Find ALL students in the same department, grade, and semester
+        // Regardless of whether they have grades or not
+        const students = await Student.find({
+          department: courseDoc.department,
+          grade: courseDoc.year,
+          semester: courseDoc.semester,
+        }).populate("user");
+
+        console.log(`📢 Found ${students.length} students to notify`);
+
+        // Create notification for each student
+        const notificationPromises = students.map((student) => {
+          if (student.user) {
+            return Notification.create({
+              user: student.user._id,
+              type: type === 'assignment' ? 'assignment_posted' : 'handout_posted',
+              title: `New ${type === 'assignment' ? 'Assignment' : 'Handout'}: ${title}`,
+              message: `${assignment.teacher.name} posted a new ${type} in ${courseDoc.name}${dueDate ? ` - Due: ${new Date(dueDate).toLocaleDateString()}` : ''}`,
+              data: {
+                assignmentId: assignment._id,
+                courseId: course,
+                teacherId: teacher,
+              },
+            });
+          }
+        });
+
+        await Promise.all(notificationPromises.filter(Boolean));
+        console.log(`✅ Successfully notified ${students.length} students`);
+      } else {
+        console.log("⚠️ Course not found, skipping notifications");
+      }
+    } catch (notificationError) {
+      console.error("⚠️ Notification error (non-fatal):", notificationError);
+    }
 
     res.json({ ok: true, assignment_id: assignment._id });
   } catch (error) {

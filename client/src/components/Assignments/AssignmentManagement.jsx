@@ -182,13 +182,36 @@ const AssignmentManagement = () => {
         }
 
         try {
-            // Add metadata to uppy upload
-            uppy.setMeta({
-                type: formData.type,
-                title: formData.title,
-                description: formData.description,
-                course: formData.course,
-                dueDate: formData.dueDate,
+            // Update assembly options with form data
+            uppy.getPlugin('Transloadit').setOptions({
+                assemblyOptions: {
+                    params: {
+                        auth: {
+                            key: '2147be3263c54c7848aa80043a9c58f6',
+                        },
+                        steps: {
+                            ':original': {
+                                robot: '/upload/handle'
+                            },
+                            'permanent_storage': {
+                                use: ':original',
+                                robot: '/backblaze/store',
+                                credentials: 'new_generation_university',
+                                bucket: 'NewGenerationFile',
+                                path: 'assignments/${file.id}.${file.ext}'
+                            }
+                        },
+                        notify_url: 'http://localhost:5000/api/assignments/webhook',
+                    },
+                    fields: {
+                        type: formData.type,
+                        title: formData.title,
+                        description: formData.description || '',
+                        course: formData.course,
+                        dueDate: formData.dueDate || '',
+                        teacher: user._id,
+                    },
+                },
             });
 
             // Start upload
