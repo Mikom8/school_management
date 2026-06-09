@@ -498,4 +498,192 @@ router.post("/:id/download", auth, async (req, res) => {
   }
 });
 
+// @desc    Download file proxy (for private Backblaze bucket)
+// @route   GET /api/assignments/download/:assignmentId/:fileIndex
+// @access  Private
+router.get("/download/:assignmentId/:fileIndex", auth, async (req, res) => {
+  try {
+    const { assignmentId, fileIndex } = req.params;
+    
+    console.log(`\n📥 Download request received`);
+    console.log(`📄 Assignment ID: ${assignmentId}`);
+    console.log(`📄 File Index: ${fileIndex}`);
+    
+    // Get assignment
+    const assignment = await Assignment.findById(assignmentId);
+    
+    if (!assignment) {
+      console.error(`❌ Assignment not found: ${assignmentId}`);
+      return res.status(404).json({
+        success: false,
+        message: "Assignment not found",
+      });
+    }
+    
+    // Get file
+    const file = assignment.files[parseInt(fileIndex)];
+    
+    if (!file) {
+      console.error(`❌ File not found at index: ${fileIndex}`);
+      return res.status(404).json({
+        success: false,
+        message: "File not found",
+      });
+    }
+    
+    console.log(`📁 File name: ${file.name}`);
+    console.log(`🔗 Original URL: ${file.url}`);
+    
+    const https = require('https');
+    const { URL } = require('url');
+    
+    // Step 1: Authorize with B2 to get download authorization token
+    const authString = `${process.env.B2_APPLICATION_KEY_ID}:${process.env.B2_APPLICATION_KEY}`;
+    const authHeader = 'Basic ' + Buffer.from(authString).toString('base64');
+    
+    console.log(`🔐 Step 1: Authorizing with Backblaze B2 API...`);
+    
+    const authOptions = {
+      hostname: 'api.backblazeb2.com',
+      path: '/b2api/v2/b2_authorize_account',
+      method: 'GET',
+      headers: {
+        'Authorization': authHeader,
+      },
+    };
+    
+    const authRequest = https.request(authOptions, (authResponse) => {
+      let authData = '';
+      
+      authResponse.on('data', (chunk) => {
+        authData += chunk;
+      });
+      
+      authResponse.on('end', () => {
+        if (authResponse.statusCode !== 200) {
+          console.error(`❌ B2 Authorization failed with status: ${authResponse.statusCode}`);
+          console.error(`❌ Response:`, authData);
+          return res.status(500).json({
+            success: false,
+            message: 'Failed to authorize with storage',
+            error: authData,
+          });
+        }
+        
+        const authResult = JSON.parse(authData);
+        console.log(`✅ B2 Authorization successful`);
+        console.log(`🔑 Got authorization token`);
+        
+        // Step 2: Download the file using the authorization token
+        const fileUrl = new URL(file.url);
+        
+        console.log(`📡 Step 2: Downloading file with authorization token...`);
+        console.log(`🌐 Host: ${fileUrl.hostname}`);
+        console.log(`📍 Path: ${fileUrl.pathname}`);
+        
+        const downloadOptions = {
+          hostname: fileUrl.hostname,
+          path: fileUrl.pathname,
+          method: 'GET',
+          headers: {
+            'Authorization': authResult.authorizationToken,
+          },
+        };
+        
+        const downloadRequest = https.request(downloadOptions, (downloadResponse) => {
+          console.log(`\n📊 Download response received`);
+          console.log(`📊 Status: ${downloadResponse.statusCode}`);
+          console.log(`📊 Status message: ${downloadResponse.statusMessage}`);
+          
+          if (downloadResponse.statusCode !== 200) {
+            console.error(`\n❌ ERROR: Download failed with status ${downloadResponse.statusCode}`);
+            
+            let errorBody = '';
+            downloadResponse.setEncoding('utf8');
+            
+            downloadResponse.on('data', (chunk) => {
+              errorBody += chunk;
+            });
+            
+            downloadResponse.on('end', () => {
+              console.error(`❌ Error response:`, errorBody);
+              if (!res.headersSent) {
+                res.status(500).json({
+                  success: false,
+                  message: 'Failed to download file',
+                  status: downloadResponse.statusCode,
+                  error: errorBody,
+                });
+              }
+            });
+            return;
+          }
+          
+          // Success!
+          console.log(`\n✅ Download successful! Streaming file...`);
+          
+          const contentType = file.type || downloadResponse.headers['content-type'] || 'application/octet-stream';
+          const fileName = encodeURIComponent(file.name);
+          
+          res.setHeader('Content-Type', contentType);
+          res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${fileName}`);
+          
+          if (downloadResponse.headers['content-length']) {
+            res.setHeader('Content-Length', downloadResponse.headers['content-length']);
+            console.log(`📦 File size: ${downloadResponse.headers['content-length']} bytes`);
+          }
+          
+          // Pipe the file stream directly to response
+          downloadResponse.pipe(res);
+          
+          downloadResponse.on('end', () => {
+            console.log(`✅ Download completed successfully: ${file.name}\n`);
+          });
+          
+          downloadResponse.on('error', (streamError) => {
+            console.error(`❌ Stream error:`, streamError);
+          });
+        });
+        
+        downloadRequest.on('error', (error) => {
+          console.error(`\n❌ Download request error:`, error);
+          if (!res.headersSent) {
+            res.status(500).json({
+              success: false,
+              message: 'Failed to connect to storage',
+              error: error.message,
+            });
+          }
+        });
+        
+        downloadRequest.end();
+      });
+    });
+    
+    authRequest.on('error', (error) => {
+      console.error(`\n❌ Authorization request error:`, error);
+      if (!res.headersSent) {
+        res.status(500).json({
+          success: false,
+          message: 'Failed to authorize with storage',
+          error: error.message,
+        });
+      }
+    });
+    
+    authRequest.end();
+    
+  } catch (error) {
+    console.error(`\n❌ Download proxy error:`, error);
+    console.error(`❌ Stack trace:`, error.stack);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to process download",
+        error: error.message,
+      });
+    }
+  }
+});
+
 module.exports = router;

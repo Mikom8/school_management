@@ -18,13 +18,14 @@ const connectDB = async () => {
         useNewUrlParser: true,
         useUnifiedTopology: true,
         family: 4, // Force IPv4 (fixes ReplicaSetNoPrimary on some Wi-Fi networks)
-        serverSelectionTimeoutMS: 5000, 
+        serverSelectionTimeoutMS: 10000, // Increased timeout
       }
     );
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
-    console.error("Database connection error:", error);
-    process.exit(1);
+    console.error("Database connection error:", error.message);
+    console.log("⚠️  Server will continue running, but database operations will fail");
+    // Don't exit - let server run for testing
   }
 };
 

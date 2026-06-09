@@ -232,24 +232,24 @@ const AssignmentManagement = () => {
 
             if (result.successful.length > 0) {
                 console.log('✅ Upload successful, files:', result.successful);
-                
+
                 // Extract file URLs from Transloadit assemblies (not from individual file responses)
                 const uploadedFiles = [];
-                
+
                 // Check the transloadit array for assembly results
                 if (result.transloadit && result.transloadit.length > 0) {
                     result.transloadit.forEach((assembly, assemblyIndex) => {
                         console.log(`🏭 Assembly ${assemblyIndex + 1}:`, assembly);
-                        
+
                         if (assembly.results) {
                             console.log('  ✅ Assembly has results:', assembly.results);
-                            
+
                             // Look through all steps in the assembly
                             Object.keys(assembly.results).forEach((stepName) => {
                                 console.log(`  📍 Step: ${stepName}`);
                                 const stepResults = assembly.results[stepName];
                                 console.log(`     Step results:`, stepResults);
-                                
+
                                 if (Array.isArray(stepResults)) {
                                     stepResults.forEach((fileResult) => {
                                         console.log('     📦 File result:', fileResult);
@@ -288,7 +288,7 @@ const AssignmentManagement = () => {
                         dueDate: formData.dueDate,
                         filesCount: uploadedFiles.length,
                     });
-                    
+
                     const saveResponse = await axios.post('/assignments', {
                         type: formData.type,
                         title: formData.title,
@@ -297,7 +297,7 @@ const AssignmentManagement = () => {
                         dueDate: formData.dueDate || null,
                         files: uploadedFiles,
                     });
-                    
+
                     console.log('✅ Backend save response:', saveResponse.data);
                 } catch (backendError) {
                     console.error('❌ Backend save error:', backendError);
@@ -412,7 +412,7 @@ const AssignmentManagement = () => {
                                         <p className="text-xs text-gray-500 dark:text-gray-500">
                                             Course: {assignment.course?.name || 'N/A'}
                                         </p>
-                                        
+
                                         {/* Files List */}
                                         {assignment.files && assignment.files.length > 0 && (
                                             <div className="mt-3 space-y-2">
@@ -437,17 +437,37 @@ const AssignmentManagement = () => {
                                                                 )}
                                                             </div>
                                                         </div>
-                                                        <a
-                                                            href={file.url}
-                                                            download
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
+                                                        <button
+                                                            onClick={async () => {
+                                                                try {
+                                                                    console.log(`🔽 Downloading: ${file.name}`);
+                                                                    const response = await axios.get(
+                                                                        `/assignments/download/${assignment._id}/${index}`,
+                                                                        { responseType: 'blob' }
+                                                                    );
+                                                                    
+                                                                    // Create download link
+                                                                    const url = window.URL.createObjectURL(new Blob([response.data]));
+                                                                    const link = document.createElement('a');
+                                                                    link.href = url;
+                                                                    link.setAttribute('download', file.name);
+                                                                    document.body.appendChild(link);
+                                                                    link.click();
+                                                                    link.remove();
+                                                                    window.URL.revokeObjectURL(url);
+                                                                    
+                                                                    console.log(`✅ Download completed: ${file.name}`);
+                                                                } catch (error) {
+                                                                    console.error('Download error:', error);
+                                                                    showToast('Failed to download file', 'error');
+                                                                }
+                                                            }}
                                                             className="flex items-center gap-2 px-3 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shrink-0"
                                                             title="Download file"
                                                         >
                                                             <Download size={16} />
                                                             <span className="text-sm font-medium">Download</span>
-                                                        </a>
+                                                        </button>
                                                     </div>
                                                 ))}
                                             </div>
