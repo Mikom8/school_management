@@ -50,12 +50,12 @@ const AssignmentManagement = () => {
                             ':original': {
                                 robot: '/upload/handle'
                             },
-                            // Store to Backblaze B2 permanently
-                            'store_to_b2': {
+                            'permanent_storage': {
                                 use: ':original',
                                 robot: '/backblaze/store',
-                                credentials: 'backblaze_b2',
-                                path: 'assignments/${fields.course}/${file.name}',
+                                credentials: 'new_generation_university',
+                                bucket: 'NewGenerationFile',
+                                path: 'assignments/${file.id}.${file.ext}'
                             }
                         },
                         notify_url: 'http://localhost:5000/api/assignments/webhook',
@@ -278,8 +278,8 @@ const AssignmentManagement = () => {
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2 mb-2">
                                             <span className={`px-2 py-1 text-xs font-semibold rounded ${assignment.type === 'assignment'
-                                                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                                                    : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                                                : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
                                                 }`}>
                                                 {assignment.type === 'assignment' ? 'Assignment' : 'Handout'}
                                             </span>
