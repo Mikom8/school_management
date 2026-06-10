@@ -146,6 +146,57 @@
   background-color: #5bffaa;
 }
 
+/* Error */
+.error {
+  color: #ffffff;
+  background-color: #dc2626;
+  --grid-color: rgba(185, 28, 28, 0.3);
+  background-image: linear-gradient(
+      0deg,
+      transparent 23%,
+      var(--grid-color) 24%,
+      var(--grid-color) 25%,
+      transparent 26%,
+      transparent 73%,
+      var(--grid-color) 74%,
+      var(--grid-color) 75%,
+      transparent 76%,
+      transparent
+    ),
+    linear-gradient(
+      90deg,
+      transparent 23%,
+      var(--grid-color) 24%,
+      var(--grid-color) 25%,
+      transparent 26%,
+      transparent 73%,
+      var(--grid-color) 74%,
+      var(--grid-color) 75%,
+      transparent 76%,
+      transparent
+    );
+}
+
+.error svg {
+  color: #ffffff;
+}
+
+.error .notification-progress-bar {
+  background-color: #ffffff;
+}
+
+.error:hover {
+  background-color: #b91c1c;
+}
+
+.error .notification-close:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.error .notification-close:hover svg {
+  color: #ffffff;
+}
+
 /* Notification content */
 .notification-content {
   display: flex;

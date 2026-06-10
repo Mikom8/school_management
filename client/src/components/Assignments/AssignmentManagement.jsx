@@ -359,7 +359,7 @@ const AssignmentManagement = () => {
                 {user?.role === 'teacher' && (
                     <button
                         onClick={() => setShowCreateModal(true)}
-                        className="btn btn-primary flex items-center justify-center space-x-2"
+                        className="btn btn-primary flex items-center justify-center space-x-2 cursor-pointer"
                     >
                         <Plus size={18} />
                         <span>Create New</span>
@@ -441,22 +441,22 @@ const AssignmentManagement = () => {
                                                         <button
                                                             onClick={async () => {
                                                                 const fileKey = `${assignment._id}-${index}`;
-                                                                
+
                                                                 // Prevent double-click
                                                                 if (downloadingFiles.has(fileKey)) {
                                                                     return;
                                                                 }
-                                                                
+
                                                                 try {
                                                                     // Mark as downloading
                                                                     setDownloadingFiles(prev => new Set(prev).add(fileKey));
-                                                                    
+
                                                                     console.log(`🔽 Downloading: ${file.name}`);
                                                                     const response = await axios.get(
                                                                         `/assignments/download/${assignment._id}/${index}`,
                                                                         { responseType: 'blob' }
                                                                     );
-                                                                    
+
                                                                     // Create download link
                                                                     const url = window.URL.createObjectURL(new Blob([response.data]));
                                                                     const link = document.createElement('a');
@@ -466,7 +466,7 @@ const AssignmentManagement = () => {
                                                                     link.click();
                                                                     link.remove();
                                                                     window.URL.revokeObjectURL(url);
-                                                                    
+
                                                                     console.log(`✅ Download completed: ${file.name}`);
                                                                     showToast('Download completed!', 'success');
                                                                 } catch (error) {
@@ -482,11 +482,10 @@ const AssignmentManagement = () => {
                                                                 }
                                                             }}
                                                             disabled={downloadingFiles.has(`${assignment._id}-${index}`)}
-                                                            className={`flex items-center gap-2 px-3 py-2 text-white rounded-lg transition-colors shrink-0 ${
-                                                                downloadingFiles.has(`${assignment._id}-${index}`)
-                                                                    ? 'bg-gray-400 cursor-not-allowed'
-                                                                    : 'bg-blue-600 hover:bg-blue-700'
-                                                            }`}
+                                                            className={`flex items-center gap-2 px-3 py-2 text-white rounded-lg transition-colors shrink-0 ${downloadingFiles.has(`${assignment._id}-${index}`)
+                                                                ? 'bg-gray-400 cursor-not-allowed'
+                                                                : 'bg-blue-600 hover:bg-blue-700'
+                                                                }`}
                                                             title="Download file"
                                                         >
                                                             <Download size={16} className={downloadingFiles.has(`${assignment._id}-${index}`) ? 'animate-bounce' : ''} />
@@ -581,10 +580,10 @@ const AssignmentManagement = () => {
                                     <select
                                         value={formData.course}
                                         onChange={(e) => setFormData(prev => ({ ...prev, course: e.target.value }))}
-                                        className="input w-full"
+                                        className="input w-full cursor-pointer"
                                         required
                                     >
-                                        <option value="">Select a course</option>
+                                        <option value="" disabled selected>Select a course</option>
                                         {courses.map(course => (
                                             <option key={course._id} value={course._id}>
                                                 {course.code} - {course.name}
@@ -647,18 +646,18 @@ const AssignmentManagement = () => {
                                 </div>
 
                                 {/* Submit Button */}
-                                <div className="sticky bottom-0 bg-white dark:bg-gray-800 flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                <div className="sticky bottom-0 bg-white dark:bg-gray-800 flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700 z-9999999999999">
                                     <button
                                         type="button"
                                         onClick={() => {
                                             setShowCreateModal(false);
                                             resetForm();
                                         }}
-                                        className="btn btn-secondary"
+                                        className="btn btn-secondary cursor-pointer"
                                     >
                                         Cancel
                                     </button>
-                                    <button type="submit" className="btn btn-primary flex items-center gap-2">
+                                    <button type="submit" className="btn btn-primary flex items-center gap-2 cursor-pointer">
                                         <Upload size={18} />
                                         <span>Create {formData.type === 'assignment' ? 'Assignment' : 'Handout'}</span>
                                     </button>

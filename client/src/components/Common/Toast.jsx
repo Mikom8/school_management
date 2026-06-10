@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
-import { CheckCircle, X } from 'lucide-react';
+import { CheckCircle, X, AlertCircle } from 'lucide-react';
 import './Toast.css';
 
-const Toast = ({ message, show, onClose, duration = 5000 }) => {
+const Toast = ({ message, show, onClose, type = 'success', duration = 5000 }) => {
   useEffect(() => {
     if (show) {
       const timer = setTimeout(() => {
@@ -17,10 +17,10 @@ const Toast = ({ message, show, onClose, duration = 5000 }) => {
 
   return (
     <div className="notification-container-fixed">
-      <div className="notification-item success">
+      <div className={`notification-item ${type}`}>
         <div className="notification-content">
           <div className="notification-icon">
-            <CheckCircle size={20} />
+            {type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
           </div>
           <div className="notification-text">{message}</div>
         </div>
