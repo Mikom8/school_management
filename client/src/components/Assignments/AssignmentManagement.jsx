@@ -37,7 +37,13 @@ const AssignmentManagement = () => {
             restrictions: {
                 maxNumberOfFiles: 10,
                 maxFileSize: 100 * 1024 * 1024, // 100MB
-                allowedFileTypes: ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.txt', '.zip', '.rar', 'image/*', 'video/*'],
+                allowedFileTypes: [
+                    '.pdf',
+                    '.doc', '.docx',
+                    '.ppt', '.pptx',
+                    '.xls', '.xlsx',
+                    '.mdb', '.accdb', '.db', '.sqlite', '.sql'
+                ],
             },
             autoProceed: false,
         })
@@ -115,7 +121,7 @@ const AssignmentManagement = () => {
                 height: 350,
                 proudlyDisplayPoweredByUppy: false,
                 showProgressDetails: true,
-                note: 'Upload files up to 100MB. Max 10 files.',
+                note: 'Upload files up to 100MB. Max 10 files. Allowed: PDF, Word, PowerPoint, Excel, Database files.',
                 theme: 'auto',
             });
         }
@@ -373,9 +379,51 @@ const AssignmentManagement = () => {
             {/* Assignments List */}
             <div className="card">
                 {loading ? (
-                    <div className="text-center py-12">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                        <p className="text-gray-500 dark:text-gray-400 mt-4">Loading...</p>
+                    <div className="space-y-4 animate-pulse">
+                        {[...Array(3)].map((_, index) => (
+                            <div
+                                key={index}
+                                className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                            >
+                                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                                    <div className="flex-1 space-y-3">
+                                        {/* Badge and date skeleton */}
+                                        <div className="flex items-center gap-2">
+                                            <div className="h-6 w-24 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                                            <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                                        </div>
+                                        
+                                        {/* Title skeleton */}
+                                        <div className="h-6 w-3/4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                                        
+                                        {/* Description skeleton */}
+                                        <div className="h-4 w-full bg-gray-200 dark:bg-gray-700 rounded"></div>
+                                        <div className="h-4 w-2/3 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                                        
+                                        {/* Course skeleton */}
+                                        <div className="h-3 w-40 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                                        
+                                        {/* Files skeleton */}
+                                        <div className="mt-3 space-y-2">
+                                            <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                                            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/30 rounded border border-gray-200 dark:border-gray-600">
+                                                <div className="flex items-center gap-2 flex-1">
+                                                    <div className="h-5 w-5 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                                                    <div className="h-4 w-48 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                                                    <div className="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                                                </div>
+                                                <div className="h-9 w-28 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Action buttons skeleton */}
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-9 w-9 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 ) : assignments.length === 0 ? (
                     <div className="text-center py-12">
