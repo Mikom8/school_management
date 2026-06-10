@@ -248,7 +248,7 @@ router.post("/", auth, authorize("teacher"), async (req, res) => {
           user: student.userId,
           type: type === 'assignment' ? 'assignment_posted' : 'handout_posted',
           title: `New ${type === 'assignment' ? 'Assignment' : 'Handout'}: ${title}`,
-          message: `${req.user.name} posted a new ${type} in ${courseDoc.name}${dueDate ? ` - Due: ${new Date(dueDate).toLocaleDateString()}` : ''}`,
+          message: `Instructor ${req.user.name} posted a new ${type} in ${courseDoc.name}${dueDate ? ` - Due: ${new Date(dueDate).toLocaleDateString()}` : ''}`,
           data: {
             assignmentId: assignment._id,
             courseId: course,
