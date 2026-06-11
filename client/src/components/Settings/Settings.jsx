@@ -129,6 +129,57 @@ const Settings = () => {
             </div>
           </div>
 
+          {/* Appearance */}
+          <div className="card shadow-sm">
+            <div className="flex items-center space-x-3 mb-5">
+              {theme === "dark" ? (
+                <Moon size={20} className="text-purple-500" />
+              ) : themeMode === "device" ? (
+                <Monitor size={20} className="text-blue-500" />
+              ) : (
+                <Sun size={20} className="text-yellow-500" />
+              )}
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Appearance</h2>
+            </div>
+
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              Choose how the interface looks. The <span className="font-medium text-gray-700 dark:text-gray-300">Device</span> option follows your system preference automatically.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {THEME_OPTIONS.map(({ value, label, Icon, desc }) => {
+                const isActive = themeMode === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => changeThemeMode(value)}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all cursor-pointer ${
+                      isActive
+                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                        : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    }`}
+                  >
+                    <div className={`p-2.5 rounded-lg ${
+                      isActive
+                        ? "bg-blue-100 dark:bg-blue-900/40"
+                        : "bg-gray-100 dark:bg-gray-700"
+                    }`}>
+                      <Icon size={20} />
+                    </div>
+                    <span className="text-sm font-semibold">{label}</span>
+                    <span className="text-xs text-center leading-tight opacity-70">{desc}</span>
+                    {isActive && (
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500 text-white">
+                        Active
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Change Password Option */}
           <div className="card shadow-sm">
             <div className="flex items-center justify-between">
@@ -354,7 +405,7 @@ const Settings = () => {
             Choose how the interface looks. The <span className="font-medium text-gray-700 dark:text-gray-300">Device</span> option follows your system preference automatically.
           </p>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {THEME_OPTIONS.map(({ value, label, Icon, desc }) => {
               const isActive = themeMode === value;
               return (

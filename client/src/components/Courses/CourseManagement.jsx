@@ -941,7 +941,7 @@ const CourseManagement = () => {
       }
       acc[deptId].courses.push(course);
       return acc;
-    }, user?.role !== "student" ? departments.reduce((acc, dept) => {
+    }, user?.role === "admin" ? departments.reduce((acc, dept) => {
       const matchesDeptFilter = selectedDeptFilter === "all" || selectedDeptFilter === dept._id;
       const matchesSearch = searchTerm.trim() === "" || dept.name.toLowerCase().includes(searchTerm.toLowerCase());
       if (matchesDeptFilter && matchesSearch) {
