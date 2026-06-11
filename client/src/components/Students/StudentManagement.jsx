@@ -15,6 +15,7 @@ import {
   FileText,
   Save,
   Loader,
+  MoreVertical,
 } from "lucide-react";
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
@@ -48,6 +49,16 @@ const StudentManagement = () => {
     exists: false,
   });
   const { user } = useAuth();
+  const [activeMenuId, setActiveMenuId] = useState(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleOutsideClick = () => setActiveMenuId(null);
+    if (activeMenuId) {
+      window.addEventListener("click", handleOutsideClick);
+    }
+    return () => window.removeEventListener("click", handleOutsideClick);
+  }, [activeMenuId]);
 
   // Notification state
   const [notification, setNotification] = useState({
@@ -1539,38 +1550,63 @@ const StudentManagement = () => {
                       </td>
                       {user?.role === "admin" && (
                         <td className="py-3 px-2 sm:px-4">
-                          <div className="flex space-x-1 sm:space-x-2">
+                          <div className="relative">
                             <button
-                              className="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 cursor-pointer"
-                              title="Grade report"
-                              onClick={() => handleViewGradeReport(student)}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveMenuId(activeMenuId === student._id ? null : student._id);
+                              }}
+                              className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors cursor-pointer text-gray-500 dark:text-gray-400"
+                              title="Actions"
                             >
-                              <Folder size={16} className="sm:size-4" />
+                              <MoreVertical size={16} />
                             </button>
-                            <button
-                              className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 cursor-pointer"
-                              title="Edit Info"
-                              onClick={() => handleEditStudent(student)}
-                            >
-                              <Edit size={16} className="sm:size-4" />
-                            </button>
-                            <button
-                              className="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                              title="Delete"
-                              disabled={deletingId === student._id}
-                              onClick={() =>
-                                handleDeleteStudent(
-                                  student._id,
-                                  student.user?.name,
-                                )
-                              }
-                            >
-                              {deletingId === student._id ? (
-                                <Loader size={16} className="animate-spin" />
-                              ) : (
-                                <Trash2 size={16} className="sm:size-4" />
-                              )}
-                            </button>
+                            {activeMenuId === student._id && (
+                              <div className="absolute right-0 mt-1 w-36 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg py-1 z-20">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleViewGradeReport(student);
+                                    setActiveMenuId(null);
+                                  }}
+                                  className="flex items-center w-full px-3 py-1.5 text-xs text-blue-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-blue-400 transition-colors cursor-pointer text-left"
+                                >
+                                  <Folder size={14} className="mr-2" />
+                                  Grade Report
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditStudent(student);
+                                    setActiveMenuId(null);
+                                  }}
+                                  className="flex items-center w-full px-3 py-1.5 text-xs text-blue-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-blue-400 transition-colors cursor-pointer text-left"
+                                >
+                                  <Edit size={14} className="mr-2" />
+                                  Edit Info
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteStudent(student._id, student.user?.name);
+                                    setActiveMenuId(null);
+                                  }}
+                                  disabled={deletingId === student._id}
+                                  className="flex items-center w-full px-3 py-1.5 text-xs text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-red-400 transition-colors cursor-pointer disabled:opacity-50 text-left"
+                                >
+                                  {deletingId === student._id ? (
+                                    <Loader size={14} className="animate-spin mr-2" />
+                                  ) : (
+                                    <Trash2 size={14} className="mr-2" />
+                                  )}
+                                  Delete
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </td>
                       )}
