@@ -1253,7 +1253,7 @@ const CourseManagement = () => {
                       {dayOptions.map((day) => (
                         <label
                           key={day}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer border transition-all ${formData.schedule.days.includes(day)
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer border transition-all focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 dark:focus-within:ring-offset-gray-800 ${formData.schedule.days.includes(day)
                             ? "bg-blue-600 text-white border-blue-600"
                             : "bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-400"
                             }`}
