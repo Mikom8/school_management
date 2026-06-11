@@ -634,7 +634,7 @@ const AssignmentManagement = () => {
                                         className="input w-full cursor-pointer"
                                         required
                                     >
-                                        <option value="" disabled selected>Select a course</option>
+                                        <option value="" disabled>Select a course</option>
                                         {courses.map(course => (
                                             <option key={course._id} value={course._id}>
                                                 {course.code} - {course.name}
