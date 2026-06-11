@@ -15,37 +15,6 @@ router.use((req, res, next) => {
   next();
 });
 
-// TEST ROUTE: Check database connection
-router.get("/test-db", async (req, res) => {
-  try {
-    console.log("🟢 TEST-DB: Starting test...");
-    
-    const courseCount = await Course.countDocuments();
-    console.log("🟢 TEST-DB: Course count:", courseCount);
-    
-    const userCount = await User.countDocuments();
-    console.log("🟢 TEST-DB: User count:", userCount);
-    
-    const sampleCourse = await Course.findOne();
-    console.log("🟢 TEST-DB: Sample course exists:", !!sampleCourse);
-    
-    res.json({
-      success: true,
-      data: {
-        courseCount,
-        userCount,
-        sampleCourse: sampleCourse ? "Exists" : "No courses"
-      }
-    });
-    
-  } catch (error) {
-    console.error("❌ TEST-DB ERROR:", error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
 
 // TEST ROUTE: Check authentication
 router.get("/test-auth", auth, authorize("teacher"), (req, res) => {
@@ -65,34 +34,6 @@ router.get("/test-auth", auth, authorize("teacher"), (req, res) => {
   });
 });
 
-// Add this at the top of your routes/courses.js
-// PUBLIC TEST ROUTE - No authentication required
-router.get("/public-test", async (req, res) => {
-  try {
-    console.log("🟢 PUBLIC-TEST: Route reached");
-    console.log("🟢 PUBLIC-TEST: Testing database connection...");
-    
-    const courseCount = await Course.countDocuments();
-    console.log("🟢 PUBLIC-TEST: Course count:", courseCount);
-    
-    const courses = await Course.find().limit(3);
-    console.log("🟢 PUBLIC-TEST: Sample courses:", courses.length);
-    
-    res.json({
-      success: true,
-      message: "Public test route working",
-      courseCount,
-      sampleCourses: courses.map(c => ({ name: c.name, code: c.code }))
-    });
-    
-  } catch (error) {
-    console.error("❌ PUBLIC-TEST ERROR:", error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
 
 // Add this route to check user role
 router.get("/check-my-role", auth, async (req, res) => {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, FileText, Calendar, Plus, Trash2, Download, Upload } from 'lucide-react';
+import { X, FileText, Calendar, Plus, Trash2, Download, Upload, Loader } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
 import Toast from '../Common/Toast';
@@ -21,6 +21,7 @@ const AssignmentManagement = () => {
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
     const [uppy, setUppy] = useState(null);
     const [downloadingFiles, setDownloadingFiles] = useState(new Set());
+    const [isUploading, setIsUploading] = useState(false);
     const dashboardRef = useRef(null);
 
     const [formData, setFormData] = useState({
@@ -114,25 +115,30 @@ const AssignmentManagement = () => {
 
     // Mount Dashboard plugin when modal opens
     useEffect(() => {
-        if (uppy && showCreateModal && dashboardRef.current) {
-            uppy.use(Dashboard, {
-                target: dashboardRef.current,
-                inline: true,
-                height: 350,
-                proudlyDisplayPoweredByUppy: false,
-                showProgressDetails: true,
-                note: 'Upload files up to 100MB. Max 10 files. Allowed: PDF, Word, PowerPoint, Excel, Database files.',
-                theme: 'auto',
-            });
-        }
+        if (!uppy || !showCreateModal || !dashboardRef.current) return;
+
+        // Always add fresh — plugin is fully removed on cleanup below
+        uppy.use(Dashboard, {
+            target: dashboardRef.current,
+            inline: true,
+            height: 350,
+            proudlyDisplayPoweredByUppy: false,
+            showProgressDetails: true,
+            hideUploadButton: true,
+            note: 'Upload files up to 100MB. Max 10 files. Allowed: PDF, Word, PowerPoint, Excel, Database files.',
+            theme: 'auto',
+        });
 
         return () => {
-            if (uppy) {
-                try {
-                    uppy.getPlugin('Dashboard')?.unmount();
-                } catch (e) {
-                    // Plugin might not be mounted
+            // Fully remove the plugin so next open mounts into the fresh DOM node
+            try {
+                const plugin = uppy.getPlugin('Dashboard');
+                if (plugin) {
+                    plugin.unmount();
+                    uppy.removePlugin(plugin);
                 }
+            } catch (e) {
+                // ignore
             }
         };
     }, [uppy, showCreateModal]);
@@ -232,6 +238,7 @@ const AssignmentManagement = () => {
             });
 
             // Start upload
+            setIsUploading(true);
             const result = await uppy.upload();
 
             console.log('🔍 Full upload result:', result);
@@ -321,6 +328,8 @@ const AssignmentManagement = () => {
         } catch (error) {
             console.error('Error creating assignment:', error);
             showToast('Failed to create ' + formData.type, 'error');
+        } finally {
+            setIsUploading(false);
         }
     };
 
@@ -665,7 +674,7 @@ const AssignmentManagement = () => {
                                             Due Date *
                                         </label>
                                         <input
-                                            type="datetime-local"
+                                            type="date"
                                             value={formData.dueDate}
                                             onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
                                             className="input w-full"
@@ -708,9 +717,22 @@ const AssignmentManagement = () => {
                                     >
                                         Cancel
                                     </button>
-                                    <button type="submit" className="btn btn-primary flex items-center gap-2 cursor-pointer">
-                                        <Upload size={18} />
-                                        <span>Create {formData.type === 'assignment' ? 'Assignment' : 'Handout'}</span>
+                                    <button 
+                                        type="submit" 
+                                        disabled={isUploading}
+                                        className="btn btn-primary flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isUploading ? (
+                                            <>
+                                                <Loader className="animate-spin" size={18} />
+                                                <span>Uploading...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Upload size={18} />
+                                                <span>Create {formData.type === 'assignment' ? 'Assignment' : 'Handout'}</span>
+                                            </>
+                                        )}
                                     </button>
                                 </div>
                             </form>
