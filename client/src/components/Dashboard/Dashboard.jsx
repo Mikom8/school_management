@@ -76,6 +76,8 @@ const Dashboard = () => {
   const [nextClass, setNextClass] = useState(null);
   const [scheduleLoading, setScheduleLoading] = useState(false);
   const [enrollmentTrend, setEnrollmentTrend] = useState([]);
+  const [assignmentsDueThisWeek, setAssignmentsDueThisWeek] = useState(0);
+  const [assignmentsSubtitle, setAssignmentsSubtitle] = useState("This week");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterGrade, setFilterGrade] = useState("");
   const [loading, setLoading] = useState(true);
@@ -129,10 +131,12 @@ const Dashboard = () => {
     } else if (user?.role === "teacher") {
       fetchTeacherCourses();
       fetchTeacherSchedule();
-    } else if (user?.role === "student") {
+      fetchStudentAssignments();
+    } else    if (user?.role === "student") {
       fetchStudentCourses();
       fetchStudentGrades();
       fetchStudentSchedule();
+      fetchStudentAssignments();
     }
   }, [user?.role]);
 
@@ -347,6 +351,49 @@ const Dashboard = () => {
     } catch (error) {
       console.error("Error fetching student courses:", error);
       setMyCourses([]);
+    }
+  };
+
+  const fetchStudentAssignments = async () => {
+    try {
+      const response = await axios.get("/assignments");
+      const assignments = response.data?.assignments || response.data?.data || [];
+
+      // Calculate the start and end of the current week (Mon–Sun)
+      const now = new Date();
+      const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon ... 6=Sat
+      const diffToMonday = (dayOfWeek === 0 ? -6 : 1 - dayOfWeek);
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() + diffToMonday);
+      weekStart.setHours(0, 0, 0, 0);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      weekEnd.setHours(23, 59, 59, 999);
+
+      const dueThisWeek = assignments.filter((a) => {
+        if (!a.dueDate) return false;
+        const due = new Date(a.dueDate);
+        return due >= weekStart && due <= weekEnd;
+      });
+
+      const overdueCount = assignments.filter((a) => {
+        if (!a.dueDate) return false;
+        return new Date(a.dueDate) < now;
+      }).length;
+
+      setAssignmentsDueThisWeek(dueThisWeek.length);
+
+      if (dueThisWeek.length === 0 && overdueCount > 0) {
+        setAssignmentsSubtitle(`${overdueCount} overdue`);
+      } else if (dueThisWeek.length === 0) {
+        setAssignmentsSubtitle("None this week");
+      } else {
+        setAssignmentsSubtitle("Due this week");
+      }
+    } catch (error) {
+      console.error("Error fetching student assignments:", error);
+      setAssignmentsDueThisWeek(0);
+      setAssignmentsSubtitle("This week");
     }
   };
 
@@ -911,8 +958,8 @@ const Dashboard = () => {
         <TeacherStatCard
           icon={FileText}
           title="Assignments Due"
-          value={stats.assignments || 0}
-          subtitle="This week"
+          value={assignmentsDueThisWeek}
+          subtitle={assignmentsSubtitle}
           color="bg-blue-500"
         />
         <TeacherStatCard
@@ -982,7 +1029,7 @@ const Dashboard = () => {
 
               <button
                 className="w-full btn btn-secondary flex items-center justify-center space-x-2 cursor-pointer"
-                onClick={() => navigate("/")}
+                onClick={() => navigate("/assignments")}
               >
                 <FileText size={18} />
                 <span>Create Assignment</span>
@@ -1064,8 +1111,8 @@ const Dashboard = () => {
         <StudentStatCard
           icon={FileText}
           title="Assignments Due"
-          value="2"
-          subtitle="This week"
+          value={assignmentsDueThisWeek}
+          subtitle={assignmentsSubtitle}
           color="bg-blue-500"
         />
         <StudentStatCard
@@ -1115,15 +1162,21 @@ const Dashboard = () => {
               Quick Actions
             </h2>
             <div className="space-y-3">
-              <button className="w-full btn btn-primary flex items-center justify-center space-x-2">
+              <button className="w-full btn btn-primary flex items-center justify-center space-x-2 cursor-pointer"
+                onClick={() => navigate("/grade-report")}
+              >
                 <Award size={18} />
                 <span>View Grades</span>
               </button>
-              <button className="w-full btn btn-secondary flex items-center justify-center space-x-2">
+              <button className="w-full btn btn-secondary flex items-center justify-center space-x-2 cursor-pointer"
+                onClick={() => navigate("/assignments")}
+              >
                 <BookOpen size={18} />
                 <span>Course Materials</span>
               </button>
-              <button className="w-full btn btn-secondary flex items-center justify-center space-x-2">
+              <button className="w-full btn btn-secondary flex items-center justify-center space-x-2 cursor-pointer"
+                onClick={() => navigate("/schedule")}
+              >
                 <Calendar size={18} />
                 <span>My Schedule</span>
               </button>

@@ -949,7 +949,7 @@ const CourseManagement = () => {
               <section key={dept.id}>
                 {/* Department Header */}
                 <div className="flex items-center gap-2 mb-5">
-                  <div className={`h-10 w-10 flex items-center justify-center shadow-md shrink-0`}>
+                  <div className={`h-10 w-10 flex items-center justify-center shrink-0`}>
                     <NotebookText size={18} className="text-black dark:text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
