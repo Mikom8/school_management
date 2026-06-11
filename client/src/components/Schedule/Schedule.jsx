@@ -196,42 +196,44 @@ const Schedule = () => {
       </div>
 
       {/* Today's Schedule */}
-      <div className="card">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-          Today's Classes ({getCurrentDay()})
-        </h2>
-        {getTodaysEvents().length === 0 ? (
-          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-            <Calendar size={48} className="mx-auto mb-4 opacity-50" />
-            <p>No classes scheduled for today</p>
-            <p className="text-sm mt-2">
-              Enjoy your day off!
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {getTodaysEvents().map(event => (
-              <div key={event.id} className="flex items-center space-x-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg">
-                <div className={`w-3 h-3 rounded-full ${event.type === 'lecture' ? 'bg-blue-500' :
-                  event.type === 'lab' ? 'bg-green-500' :
-                    event.type === 'meeting' ? 'bg-purple-500' : 'bg-orange-500'
-                  }`}></div>
-                <div className="flex-1">
-                  <div className="font-medium text-gray-900 dark:text-white">{event.title}</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    {formatTime(event.schedule?.startTime)} - {formatTime(event.schedule?.endTime)} • Room: {event.room}
-                  </div>
-                  {event.instructor && (
+      {user?.role !== 'admin' && (
+        <div className="card">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            Today's Classes ({getCurrentDay()})
+          </h2>
+          {getTodaysEvents().length === 0 ? (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              <Calendar size={48} className="mx-auto mb-4 opacity-50" />
+              <p>No classes scheduled for today</p>
+              <p className="text-sm mt-2">
+                Enjoy your day off!
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {getTodaysEvents().map(event => (
+                <div key={event.id} className="flex items-center space-x-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg">
+                  <div className={`w-3 h-3 rounded-full ${event.type === 'lecture' ? 'bg-blue-500' :
+                    event.type === 'lab' ? 'bg-green-500' :
+                      event.type === 'meeting' ? 'bg-purple-500' : 'bg-orange-500'
+                    }`}></div>
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900 dark:text-white">{event.title}</div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">
-                      Instructor: {event.instructor}
+                      {formatTime(event.schedule?.startTime)} - {formatTime(event.schedule?.endTime)} • Room: {event.room}
                     </div>
-                  )}
+                    {event.instructor && (
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        Instructor: {event.instructor}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

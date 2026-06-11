@@ -1119,11 +1119,11 @@ const CourseManagement = () => {
 
       {/* ── Create Department Modal ── */}
       {showDeptModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/80 bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Create Department</h3>
-              <button onClick={() => setShowDeptModal(false)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setShowDeptModal(false)} className="text-gray-400 hover:text-gray-600 cursor-pointer">
                 <X size={18} />
               </button>
             </div>
@@ -1167,8 +1167,8 @@ const CourseManagement = () => {
                   <textarea name="description" value={deptForm.description} onChange={(e) => setDeptForm((p) => ({ ...p, description: e.target.value }))} className="input w-full" rows={3} />
                 </div>
                 <div className="flex justify-end space-x-2 pt-2">
-                  <button type="button" onClick={() => setShowDeptModal(false)} className="btn btn-secondary">Cancel</button>
-                  <button type="submit" className="btn btn-primary" disabled={deptSubmitting}>{deptSubmitting ? "Saving..." : "Create"}</button>
+                  <button type="button" onClick={() => setShowDeptModal(false)} className="btn btn-secondary cursor-pointer">Cancel</button>
+                  <button type="submit" className="btn btn-primary cursor-pointer" disabled={deptSubmitting}>{deptSubmitting ? "Saving..." : "Create"}</button>
                 </div>
               </div>
             </form>
@@ -1178,7 +1178,7 @@ const CourseManagement = () => {
 
       {/* ── Create / Edit Course Modal ── */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/80 bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/80 bg-opacity-50 flex items-center justify-center p-4 z-50 custom-scrollbar">
           <div className="bg-white dark:bg-gray-800 border dark:border-gray-400 border-blue-500 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -1295,10 +1295,7 @@ const CourseManagement = () => {
                       <span>Saving...</span>
                     </>
                   ) : (
-                    <>
-                      <Save size={16} />
-                      <span>{editingCourse ? "Update" : "Create"} Course</span>
-                    </>
+                    <span>{editingCourse ? "Update" : "Create"} Course</span>
                   )}
                 </button>
               </div>

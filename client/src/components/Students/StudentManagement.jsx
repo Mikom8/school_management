@@ -1218,7 +1218,7 @@ const StudentManagement = () => {
                       onChange={handleInputChange}
                       className="input"
                     >
-                      <option value="" disabled selected>Select Academic Year</option>
+                      <option value="" disabled>Select Academic Year</option>
                       {gradeOptions.map((grade) => (
                         <option key={grade} value={grade}>
                           {grade}
@@ -1250,7 +1250,7 @@ const StudentManagement = () => {
                       onChange={handleInputChange}
                       className="input"
                     >
-                      <option value="" disabled selected>Select Semester</option>
+                      <option value="" disabled>Select Semester</option>
                       {semesterOptions.map((sem) => (
                         <option key={sem} value={sem}>
                           {sem}
@@ -1269,7 +1269,7 @@ const StudentManagement = () => {
                       onChange={handleInputChange}
                       className="input"
                     >
-                      <option value="">Select Department</option>
+                      <option value="" disabled>Select Department</option>
                       {departments.map((dept) => (
                         <option key={dept._id} value={dept._id}>
                           {dept.name}
