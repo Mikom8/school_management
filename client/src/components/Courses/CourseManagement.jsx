@@ -16,6 +16,7 @@ import {
   CheckCircle,
   Info,
   User,
+  MoreVertical,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import Toast from "../Common/Toast";
@@ -36,6 +37,21 @@ const CourseManagement = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const { user } = useAuth();
+  const [activeMenuId, setActiveMenuId] = useState(null);
+
+  // Close active dropdown menu when clicking anywhere else
+  useEffect(() => {
+    const handleOutsideClick = () => {
+      setActiveMenuId(null);
+    };
+    if (activeMenuId) {
+      window.addEventListener("click", handleOutsideClick);
+    }
+    return () => {
+      window.removeEventListener("click", handleOutsideClick);
+    };
+  }, [activeMenuId]);
+
   const [toast, setToast] = useState({
     show: false,
     message: "",
@@ -974,9 +990,61 @@ const CourseManagement = () => {
                             </div>
 
                             <div className="flex flex-col items-end gap-1.5 shrink-0">
-                              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 whitespace-nowrap">
-                                {course.credits} credits
-                              </span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 whitespace-nowrap">
+                                  {course.credits} credits
+                                </span>
+                                {user?.role !== "student" &&
+                                  (user?.role === "admin" ||
+                                    (user?.role === "teacher" && assignedTeacher?._id === user._id)) && (
+                                    <div className="relative">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setActiveMenuId(activeMenuId === course._id ? null : course._id);
+                                        }}
+                                        className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors cursor-pointer text-gray-500 dark:text-gray-400"
+                                        title="Actions"
+                                      >
+                                        <MoreVertical size={16} />
+                                      </button>
+                                      {activeMenuId === course._id && (
+                                        <div className="absolute right-0 mt-1 w-28 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg py-1 z-20 text-left">
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleEdit(course);
+                                              setActiveMenuId(null);
+                                            }}
+                                            className="flex items-center w-full px-3 py-1.5 text-xs text-blue-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-blue-400 transition-colors cursor-pointer text-left"
+                                          >
+                                            <Edit size={14} className="mr-1.5" />
+                                            Edit
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              deleteCourse(course._id);
+                                              setActiveMenuId(null);
+                                            }}
+                                            disabled={deletingId === course._id}
+                                            className="flex items-center w-full px-3 py-1.5 text-xs text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-red-400 transition-colors cursor-pointer disabled:opacity-50 text-left"
+                                          >
+                                            {deletingId === course._id ? (
+                                              <Loader size={14} className="animate-spin mr-1.5" />
+                                            ) : (
+                                              <Trash2 size={14} className="mr-1.5" />
+                                            )}
+                                            Delete
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                              </div>
                               {user?.role === "admin" && (
                                 <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 flex items-center gap-1 whitespace-nowrap">
                                   <Users size={10} />
@@ -1037,32 +1105,7 @@ const CourseManagement = () => {
                             )}
                           </div>
 
-                          {/* Actions */}
-                          {user?.role !== "student" &&
-                            (user?.role === "admin" ||
-                              (user?.role === "teacher" && assignedTeacher?._id === user._id)) && (
-                              <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-4">
-                                <button
-                                  onClick={() => handleEdit(course)}
-                                  className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors cursor-pointer"
-                                >
-                                  <Edit size={13} />
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={() => deleteCourse(course._id)}
-                                  disabled={deletingId === course._id}
-                                  className="flex items-center gap-1.5 text-xs font-semibold text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                                >
-                                  {deletingId === course._id ? (
-                                    <Loader size={13} className="animate-spin" />
-                                  ) : (
-                                    <Trash2 size={13} />
-                                  )}
-                                  Delete
-                                </button>
-                              </div>
-                            )}
+
                         </div>
                       </div>
                     );
