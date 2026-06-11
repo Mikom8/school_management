@@ -771,6 +771,38 @@ const CourseManagement = () => {
     return matchesSearch && matchesDept;
   });
 
+  const groupedDepartments = Object.values(
+    filteredCourses.reduce((acc, course) => {
+      const deptId = course.department?._id || course.department || "unassigned";
+      let deptName = "Unassigned";
+      let deptCode = "";
+
+      if (course.department && typeof course.department === "object") {
+        deptName = course.department.name || "Unassigned";
+        deptCode = course.department.code || "";
+      } else if (course.department && course.department !== "unassigned") {
+        const foundDept = departments.find((d) => d._id === course.department);
+        if (foundDept) {
+          deptName = foundDept.name;
+          deptCode = foundDept.code || "";
+        }
+      }
+
+      if (!acc[deptId]) {
+        acc[deptId] = { id: deptId, name: deptName, code: deptCode, courses: [] };
+      }
+      acc[deptId].courses.push(course);
+      return acc;
+    }, user?.role !== "student" ? departments.reduce((acc, dept) => {
+      const matchesDeptFilter = selectedDeptFilter === "all" || selectedDeptFilter === dept._id;
+      const matchesSearch = searchTerm.trim() === "" || dept.name.toLowerCase().includes(searchTerm.toLowerCase());
+      if (matchesDeptFilter && matchesSearch) {
+        acc[dept._id] = { id: dept._id, name: dept.name, code: dept.code || "", courses: [] };
+      }
+      return acc;
+    }, {}) : {})
+  ).sort((a, b) => a.name.localeCompare(b.name));
+
   const dayOptions = [
     "Monday",
     "Tuesday",
@@ -928,46 +960,21 @@ const CourseManagement = () => {
       </div>
 
       {/* ── Department-grouped course list ── */}
-      {filteredCourses.length === 0 ? (
+      {groupedDepartments.length === 0 ? (
         <div className="text-center py-20">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 mb-4">
             <BookOpen className="text-gray-400" size={36} />
           </div>
-          <h3 className="mt-2 text-lg font-semibold text-gray-900 dark:text-white">No courses found</h3>
+          <h3 className="mt-2 text-lg font-semibold text-gray-900 dark:text-white">No courses or departments found</h3>
           <p className="mt-1 text-gray-500 dark:text-gray-400">
             {user?.role === "student"
               ? "You are not enrolled in any courses yet."
-              : courses.length === 0
-                ? "Create your first course to get started."
-                : "Try adjusting your search."}
+              : "Try adjusting your search or create a new department/course."}
           </p>
         </div>
       ) : (
         <div className="space-y-10">
-          {Object.values(
-            filteredCourses.reduce((acc, course) => {
-              const deptId = course.department?._id || course.department || "unassigned";
-              let deptName = "Unassigned";
-              let deptCode = "";
-
-              if (course.department && typeof course.department === "object") {
-                deptName = course.department.name || "Unassigned";
-                deptCode = course.department.code || "";
-              } else if (course.department && course.department !== "unassigned") {
-                const foundDept = departments.find((d) => d._id === course.department);
-                if (foundDept) {
-                  deptName = foundDept.name;
-                  deptCode = foundDept.code || "";
-                }
-              }
-
-              if (!acc[deptId]) {
-                acc[deptId] = { id: deptId, name: deptName, code: deptCode, courses: [] };
-              }
-              acc[deptId].courses.push(course);
-              return acc;
-            }, {})
-          ).map((dept, deptIdx) => {
+          {groupedDepartments.map((dept, deptIdx) => {
             const colors = [
               { bg: "from-blue-500 to-indigo-600", light: "bg-white dark:bg-gray-900 border-blue-200 dark:border-blue-800", badge: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300", top: "from-blue-500 to-indigo-600" },
               { bg: "from-emerald-500 to-teal-600", light: "bg-white dark:bg-gray-900 border-emerald-200 dark:border-emerald-800", badge: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300", top: "from-emerald-500 to-teal-600" },
