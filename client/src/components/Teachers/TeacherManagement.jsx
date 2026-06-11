@@ -16,6 +16,7 @@ import {
   ChevronDown,
   ChevronRight,
   Loader,
+  MoreVertical,
 } from "lucide-react";
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
@@ -126,6 +127,20 @@ const TeacherManagement = () => {
   };
   const [deletingId, setDeletingId] = useState(null);
   const { user } = useAuth();
+  const [activeMenuId, setActiveMenuId] = useState(null);
+
+  // Close active dropdown menu when clicking anywhere else
+  useEffect(() => {
+    const handleOutsideClick = () => {
+      setActiveMenuId(null);
+    };
+    if (activeMenuId) {
+      window.addEventListener("click", handleOutsideClick);
+    }
+    return () => {
+      window.removeEventListener("click", handleOutsideClick);
+    };
+  }, [activeMenuId]);
 
   // Toast states
   const [toast, setToast] = useState({
@@ -301,7 +316,7 @@ const TeacherManagement = () => {
         // Set loading state
         setPopup((prev) => ({ ...prev, isLoading: true }));
         setDeletingId(teacher._id);
-        
+
         try {
           const token = getAuthToken();
 
@@ -329,7 +344,7 @@ const TeacherManagement = () => {
 
           // Close popup immediately after success
           setPopup({ show: false, type: "info", title: "", message: "", onConfirm: null, onCancel: null, isLoading: false });
-          
+
           fetchTeachers();
           fetchCourses(); // Refresh courses to update assignments
           showToast("Teacher deleted successfully!");
@@ -566,7 +581,7 @@ const TeacherManagement = () => {
 
       {/* Add Teacher Modal */}
       {showAddForm && (
-        <div className="fixed inset-0 top-0 left-0 w-full h-screen bg-black/80 bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 top-0 left-0 w-full h-screen bg-black/80 bg-opacity-50 flex items-center justify-center z-50 p-4 custom-scrollbar">
           <div className="bg-white border dark:bg-gray-800 dark:border-gray-400 border-blue-500 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
@@ -656,7 +671,7 @@ const TeacherManagement = () => {
                       ).map((dept) => (
                         <div key={dept.id} className="space-y-3">
                           <div
-                            className="flex items-center justify-between cursor-pointer border-b border-gray-200 dark:border-gray-700 pb-1 sticky top-0 bg-white dark:bg-gray-800 z-10"
+                            className="flex items-center justify-between cursor-pointer border-b border-gray-200 dark:border-gray-700 pb-1 sticky top-0 bg-white dark:bg-gray-800 z-10 hover:bg-gray-300 dark:hover:bg-gray-700"
                             onClick={() => toggleDepartmentExpansion(dept.id)}
                           >
                             <h4 className="font-semibold text-gray-800 dark:text-gray-200">
@@ -750,7 +765,7 @@ const TeacherManagement = () => {
 
       {/* Edit Teacher Modal */}
       {editingTeacher && (
-        <div className="fixed inset-0 top-0 left-0 w-full h-screen bg-black/80 bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 top-0 left-0 w-full h-screen bg-black/80 bg-opacity-50 flex items-center justify-center z-50 p-4 custom-scrollbar">
           <div className="bg-white dark:bg-gray-800 border dark:border-gray-400 border-blue-500 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
@@ -830,7 +845,7 @@ const TeacherManagement = () => {
                       No courses available.
                     </p>
                   ) : (
-                    <div className="space-y-6 max-h-96 overflow-y-auto pr-2">
+                    <div className="space-y-6 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
                       {Object.values(
                         courses.reduce((acc, mainCourse) => {
                           const deptId = mainCourse.department?._id || "unassigned";
@@ -844,7 +859,7 @@ const TeacherManagement = () => {
                       ).map((dept) => (
                         <div key={dept.id} className="space-y-3">
                           <div
-                            className="flex items-center justify-between cursor-pointer border-b border-gray-200 dark:border-gray-700 pb-1 sticky top-0 bg-white dark:bg-gray-800 z-10"
+                            className="flex items-center justify-between cursor-pointer border-b border-gray-200 dark:border-gray-700 pb-1 sticky top-0 bg-white dark:bg-gray-800 z-10 hover:bg-gray-300 dark:hover:bg-gray-700"
                             onClick={() => toggleDepartmentExpansion(dept.id)}
                           >
                             <h4 className="font-semibold text-gray-800 dark:text-gray-200">
@@ -927,10 +942,7 @@ const TeacherManagement = () => {
                         <span>Updating...</span>
                       </>
                     ) : (
-                      <>
-                        <Save size={20} className="mr-2 inline" />
-                        <span>Update Teacher</span>
-                      </>
+                      <span>Update Teacher</span>
                     )}
                   </button>
                 </div>
@@ -1002,7 +1014,7 @@ const TeacherManagement = () => {
                 key={teacher._id}
                 className="card group hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
               >
-                <div className="flex items-start justify-between mb-4">
+                <div className="relative flex items-start justify-between mb-4">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white transition-colors">
                       {teacher.name}
@@ -1011,14 +1023,64 @@ const TeacherManagement = () => {
                       Teacher
                     </p>
                   </div>
-                  <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${teacher.isActive
-                      ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                      : "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
-                      }`}
-                  >
-                    {teacher.isActive ? "Active" : "Inactive"}
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${teacher.isActive
+                        ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                        : "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
+                        }`}
+                    >
+                      {teacher.isActive ? "Active" : "Inactive"}
+                    </span>
+                    {user?.role === "admin" && (
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveMenuId(activeMenuId === teacher._id ? null : teacher._id);
+                          }}
+                          className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors cursor-pointer text-gray-500 dark:text-gray-400"
+                          title="Actions"
+                        >
+                          <MoreVertical size={18} />
+                        </button>
+                        {activeMenuId === teacher._id && (
+                          <div className="absolute right-0 mt-1 w-28 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg py-1 z-20">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditTeacher(teacher);
+                                setActiveMenuId(null);
+                              }}
+                              className="flex items-center w-full px-3 py-1.5 text-xs text-blue-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-blue-400 transition-colors cursor-pointer text-left"
+                            >
+                              <Edit size={14} className="mr-1.5" />
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteTeacher(teacher);
+                                setActiveMenuId(null);
+                              }}
+                              disabled={deletingId === teacher._id}
+                              className="flex items-center w-full px-3 py-1.5 text-xs text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-red-400 transition-colors cursor-pointer disabled:opacity-50 text-left"
+                            >
+                              {deletingId === teacher._id ? (
+                                <Loader size={14} className="animate-spin mr-1.5" />
+                              ) : (
+                                <Trash2 size={14} className="mr-1.5" />
+                              )}
+                              Remove
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-3 mb-4">
@@ -1078,29 +1140,7 @@ const TeacherManagement = () => {
                   </div>
                 </div>
 
-                {user?.role === "admin" && (
-                  <div className="flex justify-start space-x-6 pt-4 border-t border-gray-200 dark:border-gray-600">
-                    <button
-                      className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium cursor-pointer"
-                      onClick={() => handleEditTeacher(teacher)}
-                    >
-                      <Edit size={16} />
-                      <span>Edit</span>
-                    </button>
-                    <button
-                      className="flex items-center space-x-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                      onClick={() => handleDeleteTeacher(teacher)}
-                      disabled={deletingId === teacher._id}
-                    >
-                      {deletingId === teacher._id ? (
-                        <Loader size={16} className="animate-spin" />
-                      ) : (
-                        <Trash2 size={16} />
-                      )}
-                      <span>Remove</span>
-                    </button>
-                  </div>
-                )}
+
               </div>
             );
           })
