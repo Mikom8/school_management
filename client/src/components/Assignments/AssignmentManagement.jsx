@@ -428,7 +428,7 @@ const AssignmentManagement = () => {
                 ) : assignments.length === 0 ? (
                     <div className="text-center py-12">
                         <FileText size={48} className="mx-auto text-gray-400 mb-4" />
-                        <p className="text-gray-500 dark:text-gray-400">No assignments yet</p>
+                        <p className="text-gray-500 dark:text-gray-400">No assignments or Course materials yet</p>
                     </div>
                 ) : (
                     <div className="space-y-4">
