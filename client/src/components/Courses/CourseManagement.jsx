@@ -17,6 +17,8 @@ import {
   Info,
   User,
   MoreVertical,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import Toast from "../Common/Toast";
@@ -38,6 +40,26 @@ const CourseManagement = () => {
   const [deletingId, setDeletingId] = useState(null);
   const { user } = useAuth();
   const [activeMenuId, setActiveMenuId] = useState(null);
+  const [expandedDepts, setExpandedDepts] = useState(new Set());
+
+  const toggleDept = (deptId) => {
+    setExpandedDepts(prev => {
+      const next = new Set(prev);
+      if (next.has(deptId)) {
+        next.delete(deptId);
+      } else {
+        next.add(deptId);
+      }
+      return next;
+    });
+  };
+
+  const isDeptExpanded = (deptId) => {
+    if (searchTerm.trim() !== "" || (selectedDeptFilter !== "all" && selectedDeptFilter === deptId)) {
+      return true;
+    }
+    return expandedDepts.has(deptId);
+  };
 
   // Close active dropdown menu when clicking anywhere else
   useEffect(() => {
@@ -725,10 +747,21 @@ const CourseManagement = () => {
 
   // Filter courses based on search and department
   const filteredCourses = courses.filter((course) => {
+    let deptName = "Unassigned";
+    if (course.department && typeof course.department === "object") {
+      deptName = course.department.name || "Unassigned";
+    } else if (course.department && course.department !== "unassigned") {
+      const foundDept = departments.find((d) => d._id === course.department);
+      if (foundDept) {
+        deptName = foundDept.name;
+      }
+    }
+
     const matchesSearch =
       course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       course.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (course.description || "").toLowerCase().includes(searchTerm.toLowerCase());
+      (course.description || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      deptName.toLowerCase().includes(searchTerm.toLowerCase());
 
     const courseDeptId = course.department?._id || course.department || "unassigned";
     const matchesDept =
@@ -948,7 +981,10 @@ const CourseManagement = () => {
             return (
               <section key={dept.id}>
                 {/* Department Header */}
-                <div className="flex items-center gap-2 mb-5">
+                <div 
+                  className="flex items-center gap-2 mb-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 p-2 -ml-2 rounded-xl transition-colors"
+                  onClick={() => toggleDept(dept.id)}
+                >
                   <div className={`h-10 w-10 flex items-center justify-center shrink-0`}>
                     <NotebookText size={18} className="text-black dark:text-white" />
                   </div>
@@ -962,12 +998,20 @@ const CourseManagement = () => {
                     </p>
                   </div>
                   <div className="hidden sm:block h-px flex-1 bg-linear-to-r from-gray-200 dark:from-gray-700 to-transparent" />
+                  <div className="shrink-0 text-gray-400 dark:text-gray-500">
+                    {isDeptExpanded(dept.id) ? (
+                      <ChevronDown size={20} />
+                    ) : (
+                      <ChevronRight size={20} />
+                    )}
+                  </div>
                 </div>
 
                 {/* Courses grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                  {dept.courses.map((course) => {
-                    const assignedTeacher = getAssignedTeacher(course);
+                {isDeptExpanded(dept.id) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                    {dept.courses.map((course) => {
+                      const assignedTeacher = getAssignedTeacher(course);
                     const displayCode = course.code.split("-")[0];
                     const studentCount = getStudentCountForCourse(course);
 
@@ -1111,6 +1155,7 @@ const CourseManagement = () => {
                     );
                   })}
                 </div>
+                )}
               </section>
             );
           })}
