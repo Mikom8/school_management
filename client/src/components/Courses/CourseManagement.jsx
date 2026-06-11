@@ -22,8 +22,117 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import Toast from "../Common/Toast";
-import SkeletonLoading from "../Common/SkeletonLoading";
 import { formatTimeTo12Hour } from "../../utils/timeFormat";
+
+const CourseCardSkeleton = ({ role }) => {
+  return (
+    <div className="relative rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden shadow-sm p-5 space-y-4">
+      {/* Course header */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0 space-y-2">
+          {/* Fake course title */}
+          <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded-md w-3/4"></div>
+          {/* Fake course code badge */}
+          <div className="h-5 bg-gray-100 dark:bg-gray-800 rounded-full w-16"></div>
+        </div>
+
+        <div className="flex flex-col items-end gap-1.5 shrink-0">
+          <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded-full w-20"></div>
+          {role === "admin" && (
+            <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded-full w-24"></div>
+          )}
+        </div>
+      </div>
+
+      {/* Description skeleton */}
+      <div className="space-y-1.5">
+        <div className="h-3.5 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
+        <div className="h-3.5 bg-gray-200 dark:bg-gray-700 rounded w-5/6"></div>
+      </div>
+
+      {/* Meta info */}
+      <div className="space-y-2.5 pt-2 border-t border-gray-100 dark:border-gray-800">
+        {/* Year/Semester badges */}
+        <div className="flex gap-2">
+          <div className="h-5 bg-gray-100 dark:bg-gray-800 rounded w-16"></div>
+          <div className="h-5 bg-gray-100 dark:bg-gray-800 rounded w-20"></div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <User size={13} className="text-gray-300 dark:text-gray-600 shrink-0" />
+          <div className="h-3.5 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Clock size={13} className="text-gray-300 dark:text-gray-600 shrink-0" />
+          <div className="h-3.5 bg-gray-200 dark:bg-gray-700 rounded w-44"></div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <MapPin size={13} className="text-gray-300 dark:text-gray-600 shrink-0" />
+          <div className="h-3.5 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CourseSkeleton = ({ role }) => {
+  const isAdmin = role === "admin";
+  return (
+    <div className="space-y-6 font-saira animate-pulse">
+      {/* ── Header Skeleton ── */}
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+        <div>
+          <div className="h-9 bg-gray-200 dark:bg-gray-700 rounded-xl w-64"></div>
+          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded-lg w-48 mt-2"></div>
+        </div>
+
+        <div className="flex flex-wrap gap-3 items-center">
+          <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded-xl w-64"></div>
+          {isAdmin && (
+            <>
+              <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded-xl w-44"></div>
+              <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded-xl w-28"></div>
+              <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded-xl w-36"></div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* ── Content Skeleton ── */}
+      <div className="space-y-10">
+        {[...Array(3)].map((_, deptIdx) => (
+          <section key={deptIdx}>
+            {/* Department Header Skeleton */}
+            <div className="flex items-center gap-2 mb-4 p-2 -ml-2 rounded-xl">
+              <div className="h-10 w-10 flex items-center justify-center shrink-0 bg-gray-100 dark:bg-gray-800 rounded-xl">
+                <NotebookText size={18} className="text-gray-300 dark:text-gray-600" />
+              </div>
+              <div className="flex-1 min-w-0 space-y-2">
+                <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded-md w-48"></div>
+                <div className="h-3.5 bg-gray-200 dark:bg-gray-700 rounded-md w-32"></div>
+              </div>
+              <div className="hidden sm:block h-px flex-1 bg-linear-to-r from-gray-200 dark:from-gray-700 to-transparent" />
+              <div className="shrink-0 text-gray-300 dark:text-gray-600">
+                {deptIdx === 0 ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+              </div>
+            </div>
+
+            {/* Courses grid */}
+            {deptIdx < 2 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                {[...Array(deptIdx === 0 ? 3 : 2)].map((_, courseIdx) => (
+                  <CourseCardSkeleton key={courseIdx} role={role} />
+                ))}
+              </div>
+            )}
+          </section>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const CourseManagement = () => {
   const [courses, setCourses] = useState([]);
@@ -852,7 +961,7 @@ const CourseManagement = () => {
   ];
 
   if (loading) {
-    return <SkeletonLoading />;
+    return <CourseSkeleton role={user?.role} />;
   }
 
   return (

@@ -14,33 +14,57 @@ export const useTheme = () => {
 
 // Create the provider component
 export const ThemeProvider = ({ children }) => {
-  const [isDark, setIsDark] = useState(false);
+  const [themeMode, setThemeMode] = useState(() => {
+    return localStorage.getItem("theme") || "light";
+  });
+
+  const [theme, setTheme] = useState("light");
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme");
-    const prefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)"
-    ).matches;
+    const applyTheme = () => {
+      let resolvedTheme = "light";
+      if (themeMode === "dark") {
+        resolvedTheme = "dark";
+      } else if (themeMode === "device") {
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        resolvedTheme = prefersDark ? "dark" : "light";
+      }
 
-    if (savedTheme === "dark" || (!savedTheme && prefersDark)) {
-      setIsDark(true);
-      document.documentElement.classList.add("dark");
+      setTheme(resolvedTheme);
+
+      if (resolvedTheme === "dark") {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    };
+
+    applyTheme();
+
+    if (themeMode === "device") {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      const listener = () => applyTheme();
+      mediaQuery.addEventListener("change", listener);
+      return () => mediaQuery.removeEventListener("change", listener);
     }
-  }, []);
+  }, [themeMode]);
 
-  const toggleTheme = () => {
-    setIsDark(!isDark);
-    if (!isDark) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
+  const changeThemeMode = (mode) => {
+    if (mode === "light" || mode === "dark" || mode === "device") {
+      setThemeMode(mode);
+      localStorage.setItem("theme", mode);
     }
   };
 
+  const toggleTheme = () => {
+    const nextMode = theme === "dark" ? "light" : "dark";
+    changeThemeMode(nextMode);
+  };
+
+  const isDark = theme === "dark";
+
   return (
-    <ThemeContext.Provider value={{ isDark, toggleTheme }}>
+    <ThemeContext.Provider value={{ isDark, theme, themeMode, changeThemeMode, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );

@@ -1,13 +1,19 @@
 import React, { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
-import { User, Bell, Shield, Moon, Sun, Save, CheckCircle, Lock, Eye, EyeOff, X } from "lucide-react";
+import { User, Bell, Shield, Moon, Sun, Monitor, Save, CheckCircle, Lock, Eye, EyeOff, X } from "lucide-react";
 import axios from "axios";
 import Toast from "../Common/Toast";
 
+const THEME_OPTIONS = [
+  { value: "light",  label: "Light",  Icon: Sun,     desc: "Always use light mode" },
+  { value: "dark",   label: "Dark",   Icon: Moon,    desc: "Always use dark mode" },
+  { value: "device", label: "Device", Icon: Monitor, desc: "Follow system preference" },
+];
+
 const Settings = () => {
   const { user } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, themeMode, changeThemeMode } = useTheme();
   const [saved, setSaved] = useState(false);
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -333,31 +339,52 @@ const Settings = () => {
 
         {/* Appearance */}
         <div className="card shadow-sm">
-          <div className="flex items-center space-x-3 mb-4">
+          <div className="flex items-center space-x-3 mb-5">
             {theme === "dark" ? (
               <Moon size={20} className="text-purple-500" />
+            ) : themeMode === "device" ? (
+              <Monitor size={20} className="text-blue-500" />
             ) : (
               <Sun size={20} className="text-yellow-500" />
             )}
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Appearance</h2>
           </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-gray-900 dark:text-white">Dark Mode</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Currently using {theme === "dark" ? "dark" : "light"} theme
-              </p>
-            </div>
-            <button
-              onClick={toggleTheme}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${theme === "dark" ? "bg-blue-600" : "bg-gray-300"
-                }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${theme === "dark" ? "translate-x-6" : "translate-x-1"
+
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Choose how the interface looks. The <span className="font-medium text-gray-700 dark:text-gray-300">Device</span> option follows your system preference automatically.
+          </p>
+
+          <div className="grid grid-cols-3 gap-3">
+            {THEME_OPTIONS.map(({ value, label, Icon, desc }) => {
+              const isActive = themeMode === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => changeThemeMode(value)}
+                  className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all cursor-pointer ${
+                    isActive
+                      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                      : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
                   }`}
-              />
-            </button>
+                >
+                  <div className={`p-2.5 rounded-lg ${
+                    isActive
+                      ? "bg-blue-100 dark:bg-blue-900/40"
+                      : "bg-gray-100 dark:bg-gray-700"
+                  }`}>
+                    <Icon size={20} />
+                  </div>
+                  <span className="text-sm font-semibold">{label}</span>
+                  <span className="text-xs text-center leading-tight opacity-70">{desc}</span>
+                  {isActive && (
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500 text-white">
+                      Active
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 

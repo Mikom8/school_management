@@ -16,6 +16,8 @@ import {
   Save,
   Loader,
   MoreVertical,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
@@ -27,6 +29,7 @@ const StudentManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterGrade, setFilterGrade] = useState("");
   const [filterCourse, setFilterCourse] = useState("");
+  const [filterDepartment, setFilterDepartment] = useState("");
   const [teacherCourses, setTeacherCourses] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
@@ -50,6 +53,8 @@ const StudentManagement = () => {
   });
   const { user } = useAuth();
   const [activeMenuId, setActiveMenuId] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 100;
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -59,6 +64,11 @@ const StudentManagement = () => {
     }
     return () => window.removeEventListener("click", handleOutsideClick);
   }, [activeMenuId]);
+
+  // Reset to first page whenever search or filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterGrade, filterCourse, filterDepartment]);
 
   // Notification state
   const [notification, setNotification] = useState({
@@ -196,6 +206,14 @@ const StudentManagement = () => {
         deptName.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesGrade = !filterGrade || student.grade === filterGrade;
 
+      // Department filter (admin only — match by _id or plain string)
+      const studentDeptId =
+        typeof student.department === "object"
+          ? student.department?._id?.toString()
+          : student.department?.toString();
+      const matchesDepartment =
+        !filterDepartment || studentDeptId === filterDepartment;
+
       // For teachers, filter by course using department, year, and semester
       let matchesCourse = true;
       if (user?.role === "teacher") {
@@ -238,11 +256,11 @@ const StudentManagement = () => {
         }
       }
 
-      // For admin, use grade filter; for teacher, use course filter
+      // For admin, use grade + department filters; for teacher, use course filter
       if (user?.role === "teacher") {
         return matchesSearch && matchesCourse;
       }
-      return matchesSearch && matchesGrade;
+      return matchesSearch && matchesGrade && matchesDepartment;
     })
     .sort((a, b) => {
       // Sort alphabetically by student name (A-Z) only for teachers
@@ -1467,6 +1485,20 @@ const StudentManagement = () => {
               </>
             )}
           </select>
+
+          {/* Department filter — visible for all roles */}
+          <select
+            className="input w-full md:w-auto"
+            value={filterDepartment}
+            onChange={(e) => setFilterDepartment(e.target.value)}
+          >
+            <option value="">All Departments</option>
+            {departments.map((dept) => (
+              <option key={dept._id} value={dept._id}>
+                {dept.name}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -1484,9 +1516,20 @@ const StudentManagement = () => {
           </div>
         ) : (
           <>
-            <div className="mb-4">
+            {/* Summary row */}
+            <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Total Students: <span className="font-semibold text-gray-900 dark:text-white">{filteredStudents.length}</span>
+                Total Students:{" "}
+                <span className="font-semibold text-gray-900 dark:text-white">
+                  {filteredStudents.length}
+                </span>
+                {filteredStudents.length > PAGE_SIZE && (
+                  <span className="ml-2 text-gray-500 dark:text-gray-500">
+                    &mdash; showing{" "}
+                    {(currentPage - 1) * PAGE_SIZE + 1}–
+                    {Math.min(currentPage * PAGE_SIZE, filteredStudents.length)}
+                  </span>
+                )}
               </p>
             </div>
             <div className="overflow-x-auto">
@@ -1521,100 +1564,137 @@ const StudentManagement = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredStudents.map((student) => (
-                    <tr
-                      key={student._id}
-                      className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-xs sm:text-sm"
-                    >
-                      <td className="py-3 px-2 sm:px-4 font-mono text-gray-900 dark:text-white">
-                        {student.studentId}
-                      </td>
-                      <td className="py-3 px-2 sm:px-4">
-                        <div className="font-medium text-gray-900 dark:text-white">
-                          {student.user?.name}
-                        </div>
-                      </td>
-                      {user?.role === "admin" && (
-                        <td className="py-3 px-2 sm:px-4 text-gray-900 dark:text-white hidden md:table-cell">
-                          {student.user?.email}
+                  {filteredStudents
+                    .slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+                    .map((student) => (
+                      <tr
+                        key={student._id}
+                        className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-xs sm:text-sm"
+                      >
+                        <td className="py-3 px-2 sm:px-4 font-mono text-gray-900 dark:text-white">
+                          {student.studentId}
                         </td>
-                      )}
-                      <td className="py-3 px-2 sm:px-4 text-gray-900 dark:text-white hidden sm:table-cell whitespace-nowrap">
-                        {student.grade}
-                      </td>
-                      <td className="py-3 px-2 sm:px-4 text-gray-900 dark:text-white hidden lg:table-cell">
-                        {student.semester || "-"}
-                      </td>
-                      <td className="py-3 px-2 sm:px-4 text-gray-900 dark:text-white hidden lg:table-cell">
-                        {student.department?.name || student.department || "-"}
-                      </td>
-                      {user?.role === "admin" && (
                         <td className="py-3 px-2 sm:px-4">
-                          <div className="relative">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveMenuId(activeMenuId === student._id ? null : student._id);
-                              }}
-                              className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors cursor-pointer text-gray-500 dark:text-gray-400"
-                              title="Actions"
-                            >
-                              <MoreVertical size={16} />
-                            </button>
-                            {activeMenuId === student._id && (
-                              <div className="absolute right-0 mt-1 w-36 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg py-1 z-20">
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleViewGradeReport(student);
-                                    setActiveMenuId(null);
-                                  }}
-                                  className="flex items-center w-full px-3 py-1.5 text-xs text-blue-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-blue-400 transition-colors cursor-pointer text-left"
-                                >
-                                  <Folder size={14} className="mr-2" />
-                                  Grade Report
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleEditStudent(student);
-                                    setActiveMenuId(null);
-                                  }}
-                                  className="flex items-center w-full px-3 py-1.5 text-xs text-blue-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-blue-400 transition-colors cursor-pointer text-left"
-                                >
-                                  <Edit size={14} className="mr-2" />
-                                  Edit Info
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteStudent(student._id, student.user?.name);
-                                    setActiveMenuId(null);
-                                  }}
-                                  disabled={deletingId === student._id}
-                                  className="flex items-center w-full px-3 py-1.5 text-xs text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-red-400 transition-colors cursor-pointer disabled:opacity-50 text-left"
-                                >
-                                  {deletingId === student._id ? (
-                                    <Loader size={14} className="animate-spin mr-2" />
-                                  ) : (
-                                    <Trash2 size={14} className="mr-2" />
-                                  )}
-                                  Delete
-                                </button>
-                              </div>
-                            )}
+                          <div className="font-medium text-gray-900 dark:text-white">
+                            {student.user?.name}
                           </div>
                         </td>
-                      )}
-                    </tr>
-                  ))}
+                        {user?.role === "admin" && (
+                          <td className="py-3 px-2 sm:px-4 text-gray-900 dark:text-white hidden md:table-cell">
+                            {student.user?.email}
+                          </td>
+                        )}
+                        <td className="py-3 px-2 sm:px-4 text-gray-900 dark:text-white hidden sm:table-cell whitespace-nowrap">
+                          {student.grade}
+                        </td>
+                        <td className="py-3 px-2 sm:px-4 text-gray-900 dark:text-white hidden lg:table-cell">
+                          {student.semester || "-"}
+                        </td>
+                        <td className="py-3 px-2 sm:px-4 text-gray-900 dark:text-white hidden lg:table-cell">
+                          {student.department?.name || student.department || "-"}
+                        </td>
+                        {user?.role === "admin" && (
+                          <td className="py-3 px-2 sm:px-4">
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveMenuId(activeMenuId === student._id ? null : student._id);
+                                }}
+                                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors cursor-pointer text-gray-500 dark:text-gray-400"
+                                title="Actions"
+                              >
+                                <MoreVertical size={16} />
+                              </button>
+                              {activeMenuId === student._id && (
+                                <div className="absolute right-0 mt-1 w-36 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg py-1 z-20">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleViewGradeReport(student);
+                                      setActiveMenuId(null);
+                                    }}
+                                    className="flex items-center w-full px-3 py-1.5 text-xs text-blue-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-blue-400 transition-colors cursor-pointer text-left"
+                                  >
+                                    <Folder size={14} className="mr-2" />
+                                    Grade Report
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditStudent(student);
+                                      setActiveMenuId(null);
+                                    }}
+                                    className="flex items-center w-full px-3 py-1.5 text-xs text-blue-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-blue-400 transition-colors cursor-pointer text-left"
+                                  >
+                                    <Edit size={14} className="mr-2" />
+                                    Edit Info
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteStudent(student._id, student.user?.name);
+                                      setActiveMenuId(null);
+                                    }}
+                                    disabled={deletingId === student._id}
+                                    className="flex items-center w-full px-3 py-1.5 text-xs text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-red-400 transition-colors cursor-pointer disabled:opacity-50 text-left"
+                                  >
+                                    {deletingId === student._id ? (
+                                      <Loader size={14} className="animate-spin mr-2" />
+                                    ) : (
+                                      <Trash2 size={14} className="mr-2" />
+                                    )}
+                                    Delete
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination */}
+            {filteredStudents.length > PAGE_SIZE && (
+              <div className="flex items-center justify-between mt-5 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Page <span className="font-semibold text-gray-900 dark:text-white">{currentPage}</span>{" "}
+                  of{" "}
+                  <span className="font-semibold text-gray-900 dark:text-white">
+                    {Math.ceil(filteredStudents.length / PAGE_SIZE)}
+                  </span>
+                </p>
+                <div className="flex items-center gap-2">
+                  {currentPage > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage((p) => p - 1)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                    >
+                      <ChevronLeft size={16} />
+                      Previous
+                    </button>
+                  )}
+                  {currentPage < Math.ceil(filteredStudents.length / PAGE_SIZE) && (
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage((p) => p + 1)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                    >
+                      Next
+                      <ChevronRight size={16} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
