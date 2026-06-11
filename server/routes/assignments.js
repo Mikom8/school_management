@@ -425,6 +425,115 @@ router.put("/:id", auth, authorize("teacher"), async (req, res) => {
   }
 });
 
+// Helper function to delete files from Backblaze B2
+const deleteFilesFromB2 = async (files) => {
+  if (!files || files.length === 0) return;
+  const https = require('https');
+  const { URL } = require('url');
+
+  try {
+    const bucketId = process.env.B2_BUCKET_ID;
+    if (!bucketId) {
+      console.warn("B2_BUCKET_ID not configured, skipping B2 deletion");
+      return;
+    }
+
+    const authString = `${process.env.B2_APPLICATION_KEY_ID}:${process.env.B2_APPLICATION_KEY}`;
+    const authHeader = 'Basic ' + Buffer.from(authString).toString('base64');
+    
+    const authData = await new Promise((resolve, reject) => {
+      const req = https.request({
+        hostname: 'api.backblazeb2.com',
+        path: '/b2api/v2/b2_authorize_account',
+        method: 'GET',
+        headers: { 'Authorization': authHeader }
+      }, (res) => {
+        let body = '';
+        res.on('data', chunk => body += chunk);
+        res.on('end', () => {
+          if (res.statusCode === 200) resolve(JSON.parse(body));
+          else reject(new Error(`B2 Auth failed: ${res.statusCode}`));
+        });
+      });
+      req.on('error', reject);
+      req.end();
+    });
+
+    const { authorizationToken, apiUrl } = authData;
+
+    for (const file of files) {
+      if (!file.url) continue;
+      try {
+        const urlObj = new URL(file.url);
+        const parts = urlObj.pathname.split('/');
+        if (parts[1] !== 'file' || parts.length <= 3) continue;
+        
+        const fileName = parts.slice(3).join('/');
+        console.log(`Attempting to delete B2 file: ${fileName}`);
+
+        const listData = JSON.stringify({ bucketId, prefix: fileName, maxFileCount: 1 });
+        const listUrl = new URL(`${apiUrl}/b2api/v2/b2_list_file_names`);
+        
+        const fileId = await new Promise((resolve) => {
+          const req = https.request({
+            hostname: listUrl.hostname,
+            path: listUrl.pathname,
+            method: 'POST',
+            headers: {
+              'Authorization': authorizationToken,
+              'Content-Type': 'application/json',
+              'Content-Length': Buffer.byteLength(listData)
+            }
+          }, (res) => {
+            let body = '';
+            res.on('data', chunk => body += chunk);
+            res.on('end', () => {
+              if (res.statusCode === 200) {
+                const result = JSON.parse(body);
+                if (result.files && result.files.length > 0 && result.files[0].fileName === fileName) {
+                  resolve(result.files[0].fileId);
+                } else resolve(null);
+              } else resolve(null);
+            });
+          });
+          req.on('error', () => resolve(null));
+          req.write(listData);
+          req.end();
+        });
+
+        if (!fileId) continue;
+
+        const delData = JSON.stringify({ fileName, fileId });
+        const delUrl = new URL(`${apiUrl}/b2api/v2/b2_delete_file_version`);
+        
+        await new Promise((resolve) => {
+          const req = https.request({
+            hostname: delUrl.hostname,
+            path: delUrl.pathname,
+            method: 'POST',
+            headers: {
+              'Authorization': authorizationToken,
+              'Content-Type': 'application/json',
+              'Content-Length': Buffer.byteLength(delData)
+            }
+          }, (res) => {
+            res.on('data', () => {});
+            res.on('end', resolve);
+          });
+          req.on('error', resolve);
+          req.write(delData);
+          req.end();
+        });
+        console.log(`Successfully deleted B2 file: ${fileName}`);
+      } catch (e) {
+        console.error(`Error deleting individual file ${file.url}:`, e);
+      }
+    }
+  } catch (error) {
+    console.error("Error in B2 deletion process:", error);
+  }
+};
+
 // @desc    Delete assignment
 // @route   DELETE /api/assignments/:id
 // @access  Private (Teacher - own assignments only)
@@ -449,9 +558,14 @@ router.delete("/:id", auth, authorize("teacher"), async (req, res) => {
 
     // Soft delete
     assignment.isActive = false;
-    await assignment.save();
+    
+    // Delete files from Backblaze B2 (fire and forget)
+    if (assignment.files && assignment.files.length > 0) {
+      deleteFilesFromB2(assignment.files).catch(console.error);
+      assignment.files = []; // Remove references
+    }
 
-    // Note: Files remain in Backblaze (optional: implement cleanup)
+    await assignment.save();
 
     res.json({
       success: true,

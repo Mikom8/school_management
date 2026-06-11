@@ -77,7 +77,7 @@ const Dashboard = () => {
   const [scheduleLoading, setScheduleLoading] = useState(false);
   const [enrollmentTrend, setEnrollmentTrend] = useState([]);
   const [assignmentsDueThisWeek, setAssignmentsDueThisWeek] = useState(0);
-  const [assignmentsSubtitle, setAssignmentsSubtitle] = useState("This week");
+  const [assignmentsSubtitle, setAssignmentsSubtitle] = useState("This 2 weeks");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterGrade, setFilterGrade] = useState("");
   const [loading, setLoading] = useState(true);
@@ -359,7 +359,7 @@ const Dashboard = () => {
       const response = await axios.get("/assignments");
       const assignments = response.data?.assignments || response.data?.data || [];
 
-      // Calculate the start and end of the current week (Mon–Sun)
+      // Calculate the start and end of the current 2-week period
       const now = new Date();
       const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon ... 6=Sat
       const diffToMonday = (dayOfWeek === 0 ? -6 : 1 - dayOfWeek);
@@ -367,7 +367,7 @@ const Dashboard = () => {
       weekStart.setDate(now.getDate() + diffToMonday);
       weekStart.setHours(0, 0, 0, 0);
       const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekStart.getDate() + 6);
+      weekEnd.setDate(weekStart.getDate() + 13);
       weekEnd.setHours(23, 59, 59, 999);
 
       const dueThisWeek = assignments.filter((a) => {
@@ -386,14 +386,14 @@ const Dashboard = () => {
       if (dueThisWeek.length === 0 && overdueCount > 0) {
         setAssignmentsSubtitle(`${overdueCount} overdue`);
       } else if (dueThisWeek.length === 0) {
-        setAssignmentsSubtitle("None this week");
+        setAssignmentsSubtitle("None this 2 weeks");
       } else {
-        setAssignmentsSubtitle("Due this week");
+        setAssignmentsSubtitle("Due this 2 weeks");
       }
     } catch (error) {
       console.error("Error fetching student assignments:", error);
       setAssignmentsDueThisWeek(0);
-      setAssignmentsSubtitle("This week");
+      setAssignmentsSubtitle("This 2 weeks");
     }
   };
 
