@@ -41,6 +41,12 @@ const CourseManagement = () => {
   const { user } = useAuth();
   const [activeMenuId, setActiveMenuId] = useState(null);
   const [expandedDepts, setExpandedDepts] = useState(new Set());
+  const [deptContextMenu, setDeptContextMenu] = useState({
+    show: false,
+    x: 0,
+    y: 0,
+    dept: null,
+  });
 
   const toggleDept = (deptId) => {
     setExpandedDepts(prev => {
@@ -65,14 +71,47 @@ const CourseManagement = () => {
   useEffect(() => {
     const handleOutsideClick = () => {
       setActiveMenuId(null);
+      setDeptContextMenu({ show: false, x: 0, y: 0, dept: null });
     };
-    if (activeMenuId) {
+    if (activeMenuId || deptContextMenu.show) {
       window.addEventListener("click", handleOutsideClick);
     }
     return () => {
       window.removeEventListener("click", handleOutsideClick);
     };
-  }, [activeMenuId]);
+  }, [activeMenuId, deptContextMenu.show]);
+
+  const handleDeptContextMenu = (e, dept) => {
+    if (user?.role !== "admin") return;
+    e.preventDefault();
+    setDeptContextMenu({
+      show: true,
+      x: e.clientX,
+      y: e.clientY,
+      dept
+    });
+  };
+
+  const handleDeleteDept = (dept) => {
+    showConfirmDialog(
+      "Delete Department",
+      `Are you sure you want to delete "${dept.name}" Department?`,
+      async () => {
+        try {
+          const token = getAuthToken();
+          const response = await fetch(getApiUrl(`/courses/departments/${dept.id}`), {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (!response.ok) throw new Error("Failed to delete department");
+          await fetchDepartments();
+          showToast("Department deleted successfully");
+        } catch (error) {
+          setError(`Failed to delete department: ${error.message}`);
+        }
+      }
+    );
+  };
 
   const [toast, setToast] = useState({
     show: false,
@@ -891,6 +930,44 @@ const CourseManagement = () => {
           </button>
         </div>
       )}
+
+      {/* ── Context Menu for Department ── */}
+      {deptContextMenu.show && (
+        <div 
+          className="fixed z-100 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg py-1 w-48"
+          style={{ top: deptContextMenu.y, left: deptContextMenu.x }}
+        >
+          <button
+            type="button"
+            className="flex w-full items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+            onClick={() => {
+              setDeptForm({
+                name: deptContextMenu.dept.name,
+                code: deptContextMenu.dept.code || "",
+                description: deptContextMenu.dept.description || "",
+                _id: deptContextMenu.dept.id
+              });
+              setShowDeptModal(true);
+              setDeptContextMenu({ show: false, x: 0, y: 0, dept: null });
+            }}
+          >
+            <Edit size={16} className="mr-2" />
+            Edit Department
+          </button>
+          <button
+            type="button"
+            className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer"
+            onClick={() => {
+              handleDeleteDept(deptContextMenu.dept);
+              setDeptContextMenu({ show: false, x: 0, y: 0, dept: null });
+            }}
+          >
+            <Trash2 size={16} className="mr-2" />
+            Delete Department
+          </button>
+        </div>
+      )}
+
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
@@ -941,7 +1018,10 @@ const CourseManagement = () => {
           {user?.role === "admin" && (
             <>
               <button
-                onClick={() => setShowDeptModal(true)}
+                onClick={() => {
+                  setDeptForm({ name: "", code: "", description: "" });
+                  setShowDeptModal(true);
+                }}
                 className="btn btn-secondary flex items-center space-x-2 cursor-pointer"
               >
                 <Plus size={16} />
@@ -991,6 +1071,7 @@ const CourseManagement = () => {
                 <div 
                   className="flex items-center gap-2 mb-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 p-2 -ml-2 rounded-xl transition-colors"
                   onClick={() => toggleDept(dept.id)}
+                  onContextMenu={(e) => handleDeptContextMenu(e, dept)}
                 >
                   <div className={`h-10 w-10 flex items-center justify-center shrink-0`}>
                     <NotebookText size={18} className="text-black dark:text-white" />
@@ -1173,8 +1254,10 @@ const CourseManagement = () => {
       {showDeptModal && (
         <div className="fixed inset-0 bg-black/80 bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Create Department</h3>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {deptForm._id ? "Edit Department" : "Create Department"}
+              </h3>
               <button onClick={() => setShowDeptModal(false)} className="text-gray-400 hover:text-gray-600 cursor-pointer">
                 <X size={18} />
               </button>
@@ -1186,22 +1269,26 @@ const CourseManagement = () => {
                 setDeptSubmitting(true);
                 try {
                   const token = getAuthToken();
-                  const res = await fetch(getApiUrl("/courses/departments"), {
-                    method: "POST",
+                  const isEdit = !!deptForm._id;
+                  const url = isEdit ? `/courses/departments/${deptForm._id}` : "/courses/departments";
+                  const method = isEdit ? "PUT" : "POST";
+                  
+                  const res = await fetch(getApiUrl(url), {
+                    method,
                     headers: { "Content-Type": "application/json", Authorization: token ? `Bearer ${token}` : "" },
                     body: JSON.stringify(deptForm),
                   });
                   const text = await res.text();
                   let json; try { json = JSON.parse(text); } catch (e) { json = { message: text }; }
-                  if (!res.ok) throw new Error(json?.message || res.statusText || "Failed to create department");
+                  if (!res.ok) throw new Error(json?.message || res.statusText || `Failed to ${isEdit ? 'update' : 'create'} department`);
                   const newDeptId = json?.data?._id || json?._id || null;
-                  if (newDeptId) setFormData((prev) => ({ ...prev, department: newDeptId }));
+                  if (!isEdit && newDeptId) setFormData((prev) => ({ ...prev, department: newDeptId }));
                   await fetchDepartments();
                   setShowDeptModal(false);
                   setDeptForm({ name: "", code: "", description: "" });
-                  showToast("Department created successfully!");
+                  showToast(`Department ${isEdit ? 'updated' : 'created'} successfully!`);
                 } catch (err) {
-                  setError(`Failed to create department: ${err.message}`);
+                  setError(`Failed to ${deptForm._id ? 'update' : 'create'} department: ${err.message}`);
                 } finally { setDeptSubmitting(false); }
               }}
             >
@@ -1220,7 +1307,9 @@ const CourseManagement = () => {
                 </div>
                 <div className="flex justify-end space-x-2 pt-2">
                   <button type="button" onClick={() => setShowDeptModal(false)} className="btn btn-secondary cursor-pointer">Cancel</button>
-                  <button type="submit" className="btn btn-primary cursor-pointer" disabled={deptSubmitting}>{deptSubmitting ? "Saving..." : "Create"}</button>
+                  <button type="submit" className="btn btn-primary cursor-pointer" disabled={deptSubmitting}>
+                    {deptSubmitting ? "Saving..." : (deptForm._id ? "Save Changes" : "Create")}
+                  </button>
                 </div>
               </div>
             </form>

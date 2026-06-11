@@ -250,6 +250,27 @@ router.delete("/departments/:id", auth, authorize("admin"), async (req, res) => 
   }
 });
 
+// @desc    Update a department
+// @route   PUT /api/courses/departments/:id
+// @access  Private (Admin)
+router.put("/departments/:id", auth, authorize("admin"), async (req, res) => {
+  try {
+    const { name, code, description } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: "Department name is required" });
+    }
+    const dept = await Department.findByIdAndUpdate(
+      req.params.id,
+      { name: name.trim(), code: code ? code.trim().toUpperCase() : undefined, description: description ? description.trim() : undefined },
+      { new: true, runValidators: true }
+    );
+    if (!dept) return res.status(404).json({ success: false, message: "Department not found" });
+    res.json({ success: true, data: dept });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error updating department: " + error.message });
+  }
+});
+
 // @desc    Get courses enrolled by the logged-in student
 // @route   GET /api/courses/my-courses
 // @access  Private (Student)
