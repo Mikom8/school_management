@@ -571,7 +571,7 @@ const AssignmentManagement = () => {
 
             {/* Create Modal */}
             {showCreateModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto custom-scrollbar">
                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-3xl my-8">
                         {/* Modal Header */}
                         <div className="sticky top-0 z-10 flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
@@ -590,7 +590,7 @@ const AssignmentManagement = () => {
                         </div>
 
                         {/* Modal Body */}
-                        <div className="max-h-[calc(90vh-140px)] overflow-y-auto">
+                        <div className="max-h-[calc(90vh-140px)] overflow-y-auto custom-scrollbar">
                             <form onSubmit={handleSubmit} className="p-6 space-y-6">
                                 {/* Type Selection */}
                                 <div>
@@ -697,7 +697,7 @@ const AssignmentManagement = () => {
                                 </div>
 
                                 {/* Submit Button */}
-                                <div className="sticky bottom-0 bg-white dark:bg-gray-800 flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700 z-9999999999999">
+                                <div className="sticky bottom-0 bg-white dark:bg-gray-800 flex justify-end gap-3 pt-4 pb-2 border-t border-gray-200 dark:border-gray-700 z-9999999999999">
                                     <button
                                         type="button"
                                         onClick={() => {
