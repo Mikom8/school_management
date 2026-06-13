@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import API_BASE_URL from '../../utils/api';
 import { X, FileText, Calendar, Plus, Trash2, Download, Upload, Loader } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
@@ -66,7 +67,7 @@ const AssignmentManagement = () => {
                                 path: 'assignments/${file.id}.${file.ext}'
                             }
                         },
-                        notify_url: 'http://localhost:5000/api/assignments/webhook',
+                        notify_url: `${API_BASE_URL}/assignments/webhook`,
                     },
                     fields: {
                         metadata: JSON.stringify({
@@ -224,7 +225,7 @@ const AssignmentManagement = () => {
                                 path: 'assignments/${file.id}.${file.ext}'
                             }
                         },
-                        notify_url: 'http://localhost:5000/api/assignments/webhook',
+                        notify_url: `${API_BASE_URL}/assignments/webhook`,
                     },
                     fields: {
                         type: formData.type,

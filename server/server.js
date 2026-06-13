@@ -5,8 +5,25 @@ require("dotenv").config();
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// CORS — allow local dev and production frontend
+const allowedOrigins = [
+  "http://localhost:5173",   // Vite dev server
+  "http://localhost:4173",   // Vite preview
+  "http://localhost:3000",
+  process.env.FRONTEND_URL,  // Set this on Render to your deployed frontend URL
+].filter(Boolean);           // Remove undefined entries
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl, Postman)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      callback(new Error(`CORS: origin '${origin}' not allowed`));
+    },
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 // MongoDB Connection

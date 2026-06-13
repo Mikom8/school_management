@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import API_BASE_URL from "../../utils/api";
 import {
   Plus,
   Search,
@@ -209,7 +210,7 @@ const TeacherManagement = () => {
 
   // Get API base URL
   const getApiUrl = (endpoint) => {
-    return `http://localhost:5000/api${endpoint}`;
+    return `${API_BASE_URL}${endpoint}`;
   };
 
   // Get auth token
