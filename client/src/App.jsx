@@ -1,22 +1,34 @@
-import React, { useState } from "react";
+import React, { useState, lazy, Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Navbar from "./components/Layout/Navbar";
 import Sidebar from "./components/Layout/Sidebar";
-import AssignmentManagement from "./components/Assignments/AssignmentManagement";
-import Dashboard from "./components/Dashboard/Dashboard";
-import StudentManagement from "./components/Students/StudentManagement";
-import TeacherManagement from "./components/Teachers/TeacherManagement";
-import TeacherGrades from "./components/Teachers/TeacherGrades";
-import CourseManagement from "./components/Courses/CourseManagement";
-import GradeReport from "./components/Students/GradeReport";
-import Reports from "./components/Reports/Reports";
-import Schedule from "./components/Schedule/Schedule";
-import Settings from "./components/Settings/Settings";
 import Login from "./components/Auth/Login";
 import ProtectedRoute from "./components/Auth/ProtectedRoute";
 import ErrorBoundary from "./components/Common/ErrorBoundary";
+
+// Lazy-loaded route components — each becomes its own JS chunk
+const Dashboard = lazy(() => import("./components/Dashboard/Dashboard"));
+const StudentManagement = lazy(() => import("./components/Students/StudentManagement"));
+const TeacherManagement = lazy(() => import("./components/Teachers/TeacherManagement"));
+const TeacherGrades = lazy(() => import("./components/Teachers/TeacherGrades"));
+const CourseManagement = lazy(() => import("./components/Courses/CourseManagement"));
+const GradeReport = lazy(() => import("./components/Students/GradeReport"));
+const Reports = lazy(() => import("./components/Reports/Reports"));
+const Schedule = lazy(() => import("./components/Schedule/Schedule"));
+const AssignmentManagement = lazy(() => import("./components/Assignments/AssignmentManagement"));
+const Settings = lazy(() => import("./components/Settings/Settings"));
+
+// Simple full-screen loading fallback
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col items-center gap-3">
+      <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      <p className="text-sm text-gray-500 dark:text-gray-400">Loading…</p>
+    </div>
+  </div>
+);
 
 function AppContent() {
   const { user } = useAuth();
@@ -83,7 +95,8 @@ function AppContent() {
       >
         <div className="p-4 lg:p-6">
           <ErrorBoundary>
-            <Routes>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
               <Route
                 path="/"
                 element={
@@ -164,7 +177,8 @@ function AppContent() {
                   </ProtectedRoute>
                 }
               />
-            </Routes>
+              </Routes>
+            </Suspense>
           </ErrorBoundary>
         </div>
       </main>

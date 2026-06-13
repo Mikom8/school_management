@@ -1,0 +1,75 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────
+#  School Management NG — Docker Compose
+#
+#  Services:
+#    • server  — Node.js / Express backend
+#    • mongo   — Local MongoDB (optional fallback if not using Atlas)
+#
+#  Usage:
+#    1. Copy server/.env.example to server/.env and fill in real values.
+#    2. To use MongoDB Atlas (cloud):
+#         docker compose up server
+#    3. To use local MongoDB instead:
+#         docker compose --profile local-db up
+# ─────────────────────────────────────────────────────────────────
+
+services:
+  # ── Backend ────────────────────────────────────────────────────
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: school_mgmt_server
+    restart: unless-stopped
+    ports:
+      - "${PORT:-5000}:5000"
+    env_file:
+      - ./server/.env          # loaded at runtime, NOT baked into image
+    environment:
+      NODE_ENV: production
+    depends_on:
+      mongo:
+        condition: service_healthy
+        required: false          # allow startup even without the local mongo service
+    networks:
+      - school_net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ── Local MongoDB (optional — only started with --profile local-db) ──
+  mongo:
+    image: mongo:7
+    container_name: school_mgmt_mongo
+    profiles:
+      - local-db               # only starts when you pass --profile local-db
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: school_management
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - school_net
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+# ── Named volumes ──────────────────────────────────────────────
+volumes:
+  mongo_data:
+    driver: local
+
+# ── Networks ───────────────────────────────────────────────────
+networks:
+  school_net:
+    driver: bridge
