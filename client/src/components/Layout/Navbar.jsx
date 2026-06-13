@@ -201,7 +201,7 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
 
               {/* Notification Dropdown */}
               {isNotificationOpen && (
-                <div className="absolute top-12 -right-4 sm:right-0 w-[calc(100vw-2rem)] sm:w-80 md:w-96 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 max-h-[calc(100vh-5rem)] sm:max-h-128 flex flex-col">
+                <div className="fixed sm:absolute top-[60px] sm:top-12 left-4 right-4 sm:left-auto sm:right-0 sm:w-80 md:w-96 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 max-h-[calc(100vh-5rem)] sm:max-h-128 flex flex-col">
                   {/* Header */}
                   <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                     <h3 className="font-semibold text-gray-900 dark:text-white">
