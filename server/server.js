@@ -64,6 +64,11 @@ app.get("/", (req, res) => {
   res.json({ message: "School Management API is running!" });
 });
 
+// Ping endpoint for UptimeRobot and Self-Ping
+app.get("/api/ping", (req, res) => {
+  res.status(200).json({ status: "ok", message: "Pong - Server is awake" });
+});
+
 const PORT = process.env.PORT || 5000;
 
 // Connect to database and start server
@@ -71,5 +76,23 @@ connectDB().then(() => {
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`API available at http://localhost:${PORT}/api`);
+    
+    // --- Render Free Tier Keep-Awake ---
+    // Render instances sleep after 15 mins of inactivity.
+    // This script pings the server every 14 minutes.
+    const pingInterval = 14 * 60 * 1000; // 14 minutes
+    setInterval(async () => {
+      try {
+        // Use deployed BACKEND_URL if available, otherwise local
+        const url = process.env.BACKEND_URL || `http://localhost:${PORT}`;
+        // Using native fetch (available in Node 18+)
+        const response = await fetch(`${url}/api/ping`);
+        if (response.ok) {
+          console.log(`[Keep-Awake] Self-ping successful at ${new Date().toISOString()}`);
+        }
+      } catch (err) {
+        console.error(`[Keep-Awake] Self-ping failed:`, err.message);
+      }
+    }, pingInterval);
   });
 });
