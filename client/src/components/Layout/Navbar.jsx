@@ -83,7 +83,7 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
     // When opening dropdown with unread notifications
     if (!wasOpen && unreadCount > 0) {
       setUnreadCount(0); // Clear badge immediately for UX
-      
+
       // Mark all notifications as read in the database (so reload works correctly)
       try {
         await axios.put("/notifications/read-all");
@@ -92,7 +92,7 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
         console.error("Error marking notifications as read:", error);
       }
     }
-    
+
     // When closing dropdown, update local state to hide blue dots
     if (wasOpen) {
       setNotifications(prev =>
@@ -201,7 +201,7 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
 
               {/* Notification Dropdown */}
               {isNotificationOpen && (
-                <div className="absolute top-12 right-0 w-80 md:w-96 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 max-h-128 flex flex-col">
+                <div className="absolute top-12 -right-4 sm:right-0 w-[calc(100vw-2rem)] sm:w-80 md:w-96 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 max-h-[calc(100vh-5rem)] sm:max-h-128 flex flex-col">
                   {/* Header */}
                   <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                     <h3 className="font-semibold text-gray-900 dark:text-white">
