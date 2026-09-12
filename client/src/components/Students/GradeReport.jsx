@@ -6,6 +6,7 @@ import {
   Award,
   TrendingUp,
   Calendar,
+  Loader,
 } from "lucide-react";
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
@@ -18,6 +19,7 @@ const GradeReport = () => {
   const [studentInfo, setStudentInfo] = useState(null);
   const [gpa, setGpa] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -45,16 +47,31 @@ const GradeReport = () => {
     }
   };
 
-  const downloadGradeReport = () => {
-    const reportData = {
-      student: studentInfo,
-      grades: grades,
-      gpa: gpa,
-      generatedAt: new Date().toISOString(),
-    };
+  const downloadGradeReport = async () => {
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      const reportData = {
+        student: studentInfo,
+        grades: grades,
+        gpa: gpa,
+        generatedAt: new Date().toISOString(),
+      };
 
-    const filename = `grade_report_${studentInfo?.studentId || "student"}_${new Date().toISOString().split("T")[0]}.xlsx`;
-    downloadExcelReport(reportData, filename, "student-grades");
+      const parts = ["Grades Report"];
+      if (studentInfo?.studentId) parts.push(studentInfo.studentId);
+      if (studentInfo?.grade) parts.push(studentInfo.grade);
+      parts.push(new Date().toISOString().split("T")[0]);
+
+      const filename = parts.join(" ").replace(/[/\\?%*:|"<>]/g, "-") + ".xlsx";
+
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      downloadExcelReport(reportData, filename, "student-grades");
+    } catch (err) {
+      console.error("Error downloading report:", err);
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const downloadPDF = async () => {
@@ -182,10 +199,20 @@ const GradeReport = () => {
         <div className="flex space-x-3 mt-4 lg:mt-0">
           <button
             onClick={downloadGradeReport}
-            className="btn btn-primary flex items-center space-x-2 cursor-pointer"
+            disabled={downloading}
+            className="btn btn-primary flex items-center space-x-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Download size={18} />
-            <span>Download Excel</span>
+            {downloading ? (
+              <>
+                <Loader className="animate-spin" size={18} />
+                <span>Downloading...</span>
+              </>
+            ) : (
+              <>
+                <Download size={18} />
+                <span>Download Excel</span>
+              </>
+            )}
           </button>
           <button
             onClick={downloadPDF}

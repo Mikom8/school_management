@@ -25,6 +25,7 @@ const Reports = () => {
   const [selectedYear, setSelectedYear] = useState("");
   const [semester, setSemester] = useState("");
   const [loading, setLoading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [reportData, setReportData] = useState(null);
 
   // Helper function to make API calls with consistent endpoint handling
@@ -214,10 +215,52 @@ const Reports = () => {
 
   const semesterOptions = ["1st Semester", "2nd Semester"];
 
-  const downloadReport = () => {
-    if (!reportData) return;
-    const filename = `${reportType}_report_${new Date().toISOString().split("T")[0]}.xlsx`;
-    downloadExcelReport(reportData, filename, reportType);
+  const downloadReport = async () => {
+    if (!reportData || downloading) return;
+    setDownloading(true);
+    try {
+      let filename = "";
+
+      if (reportType === "grades") {
+        let courseText = "";
+        if (selectedCourse) {
+          const foundCourse = courses.find((c) => c._id === selectedCourse);
+          if (foundCourse) {
+            courseText = foundCourse.code || foundCourse.name;
+          }
+        }
+
+        const parts = ["Grades Report"];
+        if (courseText) parts.push(courseText);
+        if (semester) parts.push(semester);
+        if (selectedYear) parts.push(selectedYear);
+
+        // If no filter selected, append date as fallback
+        if (parts.length === 1) {
+          parts.push(new Date().toISOString().split("T")[0]);
+        }
+
+        filename = parts.join(" ").replace(/[/\\?%*:|"<>]/g, "-") + ".xlsx";
+      } else {
+        const parts = [
+          reportType.replace("-", " ").replace(/\b\w/g, (l) => l.toUpperCase()),
+          "Report",
+        ];
+        if (semester) parts.push(semester);
+        if (selectedYear) parts.push(selectedYear);
+        parts.push(new Date().toISOString().split("T")[0]);
+
+        filename = parts.join(" ").replace(/[/\\?%*:|"<>]/g, "-") + ".xlsx";
+      }
+
+      // Small delay for smooth UI spinner feedback
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      downloadExcelReport(reportData, filename, reportType);
+    } catch (error) {
+      console.error("Error downloading report:", error);
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const reportTypes = [
@@ -473,10 +516,20 @@ const Reports = () => {
 
               <button
                 onClick={downloadReport}
-                className="w-full btn btn-primary flex items-center justify-center space-x-2 cursor-pointer"
+                disabled={downloading}
+                className="w-full btn btn-primary flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Download size={20} />
-                <span>Download Excel</span>
+                {downloading ? (
+                  <>
+                    <Loader className="animate-spin" size={20} />
+                    <span>Downloading...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download size={20} />
+                    <span>Download Excel</span>
+                  </>
+                )}
               </button>
             </div>
           ) : (
