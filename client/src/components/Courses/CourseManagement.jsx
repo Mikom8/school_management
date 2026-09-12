@@ -1046,7 +1046,7 @@ const CourseManagement = () => {
 
       {/* ── Context Menu for Department ── */}
       {deptContextMenu.show && (
-        <div 
+        <div
           className="fixed z-100 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg py-1 w-48"
           style={{ top: deptContextMenu.y, left: deptContextMenu.x }}
         >
@@ -1181,7 +1181,7 @@ const CourseManagement = () => {
             return (
               <section key={dept.id}>
                 {/* Department Header */}
-                <div 
+                <div
                   className="flex items-center gap-2 mb-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 p-2 -ml-2 rounded-xl transition-colors"
                   onClick={() => toggleDept(dept.id)}
                   onContextMenu={(e) => handleDeptContextMenu(e, dept)}
@@ -1213,149 +1213,149 @@ const CourseManagement = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                     {dept.courses.map((course) => {
                       const assignedTeacher = getAssignedTeacher(course);
-                    const displayCode = course.code.split("-")[0];
-                    const studentCount = getStudentCountForCourse(course);
+                      const displayCode = course.code.split("-")[0];
+                      const studentCount = getStudentCountForCourse(course);
 
-                    return (
-                      <div
-                        key={course._id}
-                        className={`relative rounded-2xl border overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group ${color.light}`}
-                      >
+                      return (
+                        <div
+                          key={course._id}
+                          className={`relative rounded-2xl border overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group ${color.light}`}
+                        >
 
-                        <div className="p-5">
-                          {/* Course header */}
-                          <div className="flex items-start justify-between gap-3 mb-3">
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-bold text-gray-900 dark:text-white text-base leading-snug truncate">
-                                {course.name}
-                              </h3>
-                              <span className={`inline-block mt-1 text-xs font-semibold px-2 py-0.5 rounded-full ${color.badge}`}>
-                                {displayCode}
-                              </span>
+                          <div className="p-5">
+                            {/* Course header */}
+                            <div className="flex items-start justify-between gap-3 mb-3">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-bold text-gray-900 dark:text-white text-base leading-snug truncate">
+                                  {course.name}
+                                </h3>
+                                <span className={`inline-block mt-1 text-xs font-semibold px-2 py-0.5 rounded-full ${color.badge}`}>
+                                  {displayCode}
+                                </span>
+                              </div>
+
+                              <div className="flex flex-col items-end gap-1.5 shrink-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 whitespace-nowrap">
+                                    {course.credits} credits
+                                  </span>
+                                  {user?.role !== "student" &&
+                                    (user?.role === "admin" || user?.role === "superadmin" ||
+                                      (user?.role === "teacher" && assignedTeacher?._id === user._id)) && (
+                                      <div className="relative">
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveMenuId(activeMenuId === course._id ? null : course._id);
+                                          }}
+                                          className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors cursor-pointer text-gray-500 dark:text-gray-400"
+                                          title="Actions"
+                                        >
+                                          <MoreVertical size={16} />
+                                        </button>
+                                        {activeMenuId === course._id && (
+                                          <div className="absolute right-0 mt-1 w-28 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg py-1 z-20 text-left">
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleEdit(course);
+                                                setActiveMenuId(null);
+                                              }}
+                                              className="flex items-center w-full px-3 py-1.5 text-xs text-blue-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-blue-400 transition-colors cursor-pointer text-left"
+                                            >
+                                              <Edit size={14} className="mr-1.5" />
+                                              Edit
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                deleteCourse(course._id);
+                                                setActiveMenuId(null);
+                                              }}
+                                              disabled={deletingId === course._id}
+                                              className="flex items-center w-full px-3 py-1.5 text-xs text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-red-400 transition-colors cursor-pointer disabled:opacity-50 text-left"
+                                            >
+                                              {deletingId === course._id ? (
+                                                <Loader size={14} className="animate-spin mr-1.5" />
+                                              ) : (
+                                                <Trash2 size={14} className="mr-1.5" />
+                                              )}
+                                              Delete
+                                            </button>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                </div>
+                                {(user?.role === "admin" || user?.role === "superadmin") && (
+                                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 flex items-center gap-1 whitespace-nowrap">
+                                    <Users size={10} />
+                                    {studentCount} enrolled
+                                  </span>
+                                )}
+                              </div>
                             </div>
 
-                            <div className="flex flex-col items-end gap-1.5 shrink-0">
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 whitespace-nowrap">
-                                  {course.credits} credits
-                                </span>
-                                {user?.role !== "student" &&
-                                  (user?.role === "admin" || user?.role === "superadmin" ||
-                                    (user?.role === "teacher" && assignedTeacher?._id === user._id)) && (
-                                    <div className="relative">
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setActiveMenuId(activeMenuId === course._id ? null : course._id);
-                                        }}
-                                        className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors cursor-pointer text-gray-500 dark:text-gray-400"
-                                        title="Actions"
-                                      >
-                                        <MoreVertical size={16} />
-                                      </button>
-                                      {activeMenuId === course._id && (
-                                        <div className="absolute right-0 mt-1 w-28 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg py-1 z-20 text-left">
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleEdit(course);
-                                              setActiveMenuId(null);
-                                            }}
-                                            className="flex items-center w-full px-3 py-1.5 text-xs text-blue-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-blue-400 transition-colors cursor-pointer text-left"
-                                          >
-                                            <Edit size={14} className="mr-1.5" />
-                                            Edit
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              deleteCourse(course._id);
-                                              setActiveMenuId(null);
-                                            }}
-                                            disabled={deletingId === course._id}
-                                            className="flex items-center w-full px-3 py-1.5 text-xs text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-red-400 transition-colors cursor-pointer disabled:opacity-50 text-left"
-                                          >
-                                            {deletingId === course._id ? (
-                                              <Loader size={14} className="animate-spin mr-1.5" />
-                                            ) : (
-                                              <Trash2 size={14} className="mr-1.5" />
-                                            )}
-                                            Delete
-                                          </button>
-                                        </div>
-                                      )}
-                                    </div>
+                            {/* Description */}
+                            {course.description && (
+                              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">
+                                {course.description}
+                              </p>
+                            )}
+
+                            {/* Meta info */}
+                            <div className="space-y-2 text-xs text-gray-600 dark:text-gray-400">
+                              {(course.year || course.semester) && (
+                                <div className="flex items-center gap-2">
+                                  {course.year && (
+                                    <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 font-medium">
+                                      {course.year}
+                                    </span>
                                   )}
-                              </div>
-                              {(user?.role === "admin" || user?.role === "superadmin") && (
-                                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 flex items-center gap-1 whitespace-nowrap">
-                                  <Users size={10} />
-                                  {studentCount} enrolled
-                                </span>
+                                  {course.semester && (
+                                    <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 font-medium">
+                                      {course.semester}
+                                    </span>
+                                  )}
+                                </div>
                               )}
-                            </div>
-                          </div>
 
-                          {/* Description */}
-                          {course.description && (
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">
-                              {course.description}
-                            </p>
-                          )}
-
-                          {/* Meta info */}
-                          <div className="space-y-2 text-xs text-gray-600 dark:text-gray-400">
-                            {(course.year || course.semester) && (
                               <div className="flex items-center gap-2">
-                                {course.year && (
-                                  <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 font-medium">
-                                    {course.year}
+                                <User size={13} className="text-gray-400 shrink-0" />
+                                {assignedTeacher ? (
+                                  <span className="flex items-center gap-1 truncate">
+                                    <CheckCircle size={11} className="text-green-500 shrink-0" />
+                                    <span className="truncate font-medium text-gray-700 dark:text-gray-300">
+                                      {assignedTeacher.name}
+                                    </span>
                                   </span>
-                                )}
-                                {course.semester && (
-                                  <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 font-medium">
-                                    {course.semester}
-                                  </span>
+                                ) : (
+                                  <span className="italic text-gray-400">No teacher assigned</span>
                                 )}
                               </div>
-                            )}
 
-                            <div className="flex items-center gap-2">
-                              <User size={13} className="text-gray-400 shrink-0" />
-                              {assignedTeacher ? (
-                                <span className="flex items-center gap-1 truncate">
-                                  <CheckCircle size={11} className="text-green-500 shrink-0" />
-                                  <span className="truncate font-medium text-gray-700 dark:text-gray-300">
-                                    {assignedTeacher.name}
-                                  </span>
-                                </span>
-                              ) : (
-                                <span className="italic text-gray-400">No teacher assigned</span>
+                              <div className="flex items-center gap-2">
+                                <Clock size={13} className="text-gray-400 shrink-0" />
+                                <span className="truncate">{formatSchedule(course)}</span>
+                              </div>
+
+                              {course.schedule?.room && (
+                                <div className="flex items-center gap-2">
+                                  <MapPin size={13} className="text-gray-400 shrink-0" />
+                                  <span>Room {course.schedule.room}</span>
+                                </div>
                               )}
                             </div>
 
-                            <div className="flex items-center gap-2">
-                              <Clock size={13} className="text-gray-400 shrink-0" />
-                              <span className="truncate">{formatSchedule(course)}</span>
-                            </div>
 
-                            {course.schedule?.room && (
-                              <div className="flex items-center gap-2">
-                                <MapPin size={13} className="text-gray-400 shrink-0" />
-                                <span>Room {course.schedule.room}</span>
-                              </div>
-                            )}
                           </div>
-
-
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
                 )}
               </section>
             );
@@ -1385,7 +1385,7 @@ const CourseManagement = () => {
                   const isEdit = !!deptForm._id;
                   const url = isEdit ? `/courses/departments/${deptForm._id}` : "/courses/departments";
                   const method = isEdit ? "PUT" : "POST";
-                  
+
                   const res = await fetch(getApiUrl(url), {
                     method,
                     headers: { "Content-Type": "application/json", Authorization: token ? `Bearer ${token}` : "" },

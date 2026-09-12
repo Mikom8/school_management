@@ -10,6 +10,7 @@ import {
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
 import SkeletonLoading from "../Common/SkeletonLoading";
+import { downloadExcelReport } from "../../utils/exportUtils";
 
 const GradeReport = () => {
   const { user } = useAuth();
@@ -52,15 +53,8 @@ const GradeReport = () => {
       generatedAt: new Date().toISOString(),
     };
 
-    const dataStr = JSON.stringify(reportData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `grade_report_${studentInfo?.studentId}_${new Date().toISOString().split("T")[0]
-      }.json`;
-    link.click();
-    URL.revokeObjectURL(url);
+    const filename = `grade_report_${studentInfo?.studentId || "student"}_${new Date().toISOString().split("T")[0]}.xlsx`;
+    downloadExcelReport(reportData, filename, "student-grades");
   };
 
   const downloadPDF = async () => {
@@ -188,10 +182,10 @@ const GradeReport = () => {
         <div className="flex space-x-3 mt-4 lg:mt-0">
           <button
             onClick={downloadGradeReport}
-            className="btn btn-secondary flex items-center space-x-2 cursor-pointer"
+            className="btn btn-primary flex items-center space-x-2 cursor-pointer"
           >
             <Download size={18} />
-            <span>Download JSON</span>
+            <span>Download Excel</span>
           </button>
           <button
             onClick={downloadPDF}

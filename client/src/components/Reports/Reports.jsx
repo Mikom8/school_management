@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
+import { downloadExcelReport } from "../../utils/exportUtils";
 
 const Reports = () => {
   const { user } = useAuth();
@@ -213,18 +214,10 @@ const Reports = () => {
 
   const semesterOptions = ["1st Semester", "2nd Semester"];
 
-  const downloadReport = (format) => {
+  const downloadReport = () => {
     if (!reportData) return;
-
-    const dataStr = JSON.stringify(reportData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${reportType}_report_${new Date().toISOString().split("T")[0]
-      }.json`;
-    link.click();
-    URL.revokeObjectURL(url);
+    const filename = `${reportType}_report_${new Date().toISOString().split("T")[0]}.xlsx`;
+    downloadExcelReport(reportData, filename, reportType);
   };
 
   const reportTypes = [
@@ -479,11 +472,11 @@ const Reports = () => {
               </div>
 
               <button
-                onClick={() => downloadReport("json")}
-                className="w-full btn btn-secondary flex items-center space-x-2"
+                onClick={downloadReport}
+                className="w-full btn btn-primary flex items-center justify-center space-x-2 cursor-pointer"
               >
                 <Download size={20} />
-                <span>Download JSON</span>
+                <span>Download Excel</span>
               </button>
             </div>
           ) : (
