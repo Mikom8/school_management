@@ -19,12 +19,20 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
+import { useLocation } from "react-router-dom";
 import SkeletonLoading from "../Common/SkeletonLoading";
 
 const StudentManagement = () => {
+  const location = useLocation();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    if (location.state?.search) {
+      setSearchTerm(location.state.search);
+    }
+  }, [location.state]);
   const [filterGrade, setFilterGrade] = useState("");
   const [filterCourse, setFilterCourse] = useState("");
   const [filterDepartment, setFilterDepartment] = useState("");

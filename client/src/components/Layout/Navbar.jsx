@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { LogOut, Menu, X, Search, Bell, Check } from "lucide-react";
+import { LogOut, Menu, X, Search, Bell, Check, GraduationCap, User, BookOpen, Loader } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -10,9 +10,42 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState({ students: [], teachers: [], courses: [] });
+  const [isSearching, setIsSearching] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationLoading, setNotificationLoading] = useState(false);
+
+  useEffect(() => {
+    if (!searchQuery.trim() || searchQuery.trim().length < 2) {
+      setSearchResults({ students: [], teachers: [], courses: [] });
+      setIsSearchOpen(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        setIsSearching(true);
+        const response = await axios.get(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+        if (response.data.success) {
+          setSearchResults(response.data.data);
+          setIsSearchOpen(true);
+        }
+      } catch (err) {
+        console.error("Error performing global search:", err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const totalResults =
+    (searchResults.students?.length || 0) +
+    (searchResults.teachers?.length || 0) +
+    (searchResults.courses?.length || 0);
 
   // Fetch notifications
   useEffect(() => {
@@ -178,8 +211,135 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
                 placeholder="Search students, courses, teachers..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-64 lg:w-80 xl:w-96 pl-10 pr-4 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 placeholder:text-gray-400"
+                onFocus={() => {
+                  if (searchQuery.trim().length >= 2) setIsSearchOpen(true);
+                }}
+                className="w-64 lg:w-80 xl:w-96 pl-10 pr-8 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 placeholder:text-gray-400 text-gray-900 dark:text-white"
               />
+              {isSearching ? (
+                <Loader className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-blue-500 animate-spin" />
+              ) : searchQuery ? (
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    setIsSearchOpen(false);
+                  }}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
+                >
+                  <X size={14} />
+                </button>
+              ) : null}
+
+              {/* Search Dropdown Results */}
+              {isSearchOpen && (
+                <div className="absolute left-0 right-0 top-12 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 py-2 z-50 max-h-96 overflow-y-auto">
+                  {totalResults === 0 ? (
+                    <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                      No results found for "{searchQuery}"
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-100 dark:divide-gray-700/50">
+                      {/* Students Category */}
+                      {searchResults.students?.length > 0 && (
+                        <div className="py-2">
+                          <div className="px-3 py-1 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center space-x-1">
+                            <GraduationCap size={14} className="text-blue-500" />
+                            <span>Students</span>
+                          </div>
+                          {searchResults.students.map((student) => (
+                            <button
+                              key={student.id}
+                              onClick={() => {
+                                setIsSearchOpen(false);
+                                navigate("/students", { state: { search: student.name } });
+                              }}
+                              className="w-full px-4 py-2 text-left hover:bg-blue-50/50 dark:hover:bg-blue-900/20 flex items-center justify-between transition-colors cursor-pointer"
+                            >
+                              <div>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                  {student.name}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  ID: {student.studentId} {student.grade ? `• ${student.grade}` : ""} {student.department ? `• ${student.department}` : ""}
+                                </p>
+                              </div>
+                              <span className="text-[10px] font-semibold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                                Student
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Teachers Category */}
+                      {searchResults.teachers?.length > 0 && (
+                        <div className="py-2">
+                          <div className="px-3 py-1 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center space-x-1">
+                            <User size={14} className="text-purple-500" />
+                            <span>Teachers</span>
+                          </div>
+                          {searchResults.teachers.map((teacher) => (
+                            <button
+                              key={teacher.id}
+                              onClick={() => {
+                                setIsSearchOpen(false);
+                                navigate("/teachers", { state: { search: teacher.name } });
+                              }}
+                              className="w-full px-4 py-2 text-left hover:bg-purple-50/50 dark:hover:bg-purple-900/20 flex items-center justify-between transition-colors cursor-pointer"
+                            >
+                              <div>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                  {teacher.name}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  {teacher.email} {teacher.department ? `• ${teacher.department}` : ""}
+                                </p>
+                              </div>
+                              <span className="text-[10px] font-semibold bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full">
+                                Teacher
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Courses Category */}
+                      {searchResults.courses?.length > 0 && (
+                        <div className="py-2">
+                          <div className="px-3 py-1 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center space-x-1">
+                            <BookOpen size={14} className="text-green-500" />
+                            <span>Courses</span>
+                          </div>
+                          {searchResults.courses.map((course) => (
+                            <button
+                              key={course.id}
+                              onClick={() => {
+                                setIsSearchOpen(false);
+                                navigate("/courses", { state: { search: course.name } });
+                              }}
+                              className="w-full px-4 py-2 text-left hover:bg-green-50/50 dark:hover:bg-green-900/20 flex items-center justify-between transition-colors cursor-pointer"
+                            >
+                              <div>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                  {course.code} - {course.name}
+                                </p>
+                                {course.teacherName && (
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    Instructor: {course.teacherName}
+                                  </p>
+                                )}
+                              </div>
+                              <span className="text-[10px] font-semibold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full">
+                                Course
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -318,12 +478,13 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
         </div>
 
         {/* Close dropdowns when clicking outside */}
-        {(isProfileOpen || isNotificationOpen) && (
+        {(isProfileOpen || isNotificationOpen || isSearchOpen) && (
           <div
             className="fixed inset-0 z-30"
             onClick={() => {
               setIsProfileOpen(false);
               setIsNotificationOpen(false);
+              setIsSearchOpen(false);
             }}
           />
         )}

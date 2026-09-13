@@ -59,6 +59,7 @@ app.use("/api/users", require("./routes/users"));
 app.use("/api/notifications", require("./routes/notifications"));
 app.use("/api/assignments", require("./routes/assignments"));
 app.use("/api/superadmin", require("./routes/superadmin"));
+app.use("/api/search", require("./routes/search"));
 
 
 // Default route provided

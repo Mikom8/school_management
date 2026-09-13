@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
+import { useLocation } from "react-router-dom";
 import SkeletonLoading from "../Common/SkeletonLoading";
 import Toast from "../Common/Toast";
 
@@ -110,10 +111,17 @@ const CustomPopup = ({
 
 
 const TeacherManagement = () => {
+  const location = useLocation();
   const [teachers, setTeachers] = useState([]);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    if (location.state?.search) {
+      setSearchTerm(location.state.search);
+    }
+  }, [location.state]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState(null);
   const [expandedDepartments, setExpandedDepartments] = useState({});

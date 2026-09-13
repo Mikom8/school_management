@@ -21,6 +21,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
+import { useLocation } from "react-router-dom";
 import Toast from "../Common/Toast";
 import { formatTimeTo12Hour } from "../../utils/timeFormat";
 
@@ -135,12 +136,19 @@ const CourseSkeleton = ({ role }) => {
 };
 
 const CourseManagement = () => {
+  const location = useLocation();
   const [courses, setCourses] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [students, setStudents] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    if (location.state?.search) {
+      setSearchTerm(location.state.search);
+    }
+  }, [location.state]);
   const [selectedDeptFilter, setSelectedDeptFilter] = useState("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
