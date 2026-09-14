@@ -4,6 +4,7 @@ const Student = require("../models/Student");
 const User = require("../models/User");
 const Course = require("../models/Course");
 const { auth } = require("../middleware/auth");
+const { escapeRegex } = require("../middleware/security");
 
 // @route   GET /api/search
 // @desc    Global search for students, teachers, and courses
@@ -18,7 +19,7 @@ router.get("/", auth, async (req, res) => {
       });
     }
 
-    const regex = new RegExp(q, "i");
+    const regex = new RegExp(escapeRegex(q), "i");
 
     // 1. Search Students by name or studentId
     const students = await Student.find({
