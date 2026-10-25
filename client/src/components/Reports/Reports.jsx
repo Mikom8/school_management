@@ -1,15 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  FileText,
-  Download,
-  Filter,
-  Calendar,
-  Users,
-  BookOpen,
-  Loader,
-  User,
-  Search,
-} from "lucide-react";
+import { FileText, Download, BookOpen, Loader } from "lucide-react";
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
 import { downloadExcelReport } from "../../utils/exportUtils";
@@ -17,7 +7,6 @@ import { downloadExcelReport } from "../../utils/exportUtils";
 const Reports = () => {
   const { user } = useAuth();
   const [reportType, setReportType] = useState("grades");
-  const [dateRange, setDateRange] = useState("this_semester");
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
   const [selectedDepartment, setSelectedDepartment] = useState("");
@@ -93,44 +82,22 @@ const Reports = () => {
       let endpoint = "";
       const params = {};
 
-      switch (reportType) {
-        case "attendance":
-          endpoint = "reports/attendance";
-          if (selectedDepartment) params.department = selectedDepartment;
-          if (dateRange) {
-            const dates = getDateRange(dateRange);
-            params.startDate = dates.start;
-            params.endDate = dates.end;
-          }
-          break;
-
-        case "grades":
-          // ADMIN: Use the admin grades endpoint
-          if (user?.role === "admin" || user?.role === "superadmin") {
-            endpoint = "grades";
-            if (selectedDepartment) params.department = selectedDepartment;
-            if (selectedYear) params.grade = selectedYear;
-            if (semester) params.semester = semester;
-          }
-          // TEACHER: Use teacher grades endpoint
-          else if (user?.role === "teacher") {
-            endpoint = "grades/teacher-grades";
-            if (selectedCourse) params.courseId = selectedCourse;
-            if (semester) params.semester = semester;
-          }
-          // STUDENT: Use student grades endpoint
-          else {
-            endpoint = "grades/my-grades";
-          }
-          break;
-
-        case "student-performance":
-          endpoint = "reports/student-performance";
-          if (selectedYear) params.grade = selectedYear;
-          break;
-
-        default:
-          return;
+      // ADMIN: Use the admin grades endpoint
+      if (user?.role === "admin" || user?.role === "superadmin") {
+        endpoint = "grades";
+        if (selectedDepartment) params.department = selectedDepartment;
+        if (selectedYear) params.grade = selectedYear;
+        if (semester) params.semester = semester;
+      }
+      // TEACHER: Use teacher grades endpoint
+      else if (user?.role === "teacher") {
+        endpoint = "grades/teacher-grades";
+        if (selectedCourse) params.courseId = selectedCourse;
+        if (semester) params.semester = semester;
+      }
+      // STUDENT: Use student grades endpoint
+      else {
+        endpoint = "grades/my-grades";
       }
 
       const response = await apiCall(endpoint, params);
@@ -177,25 +144,7 @@ const Reports = () => {
 
   // ... rest of your functions (getDateRange, getCurrentSemester, etc.) remain the same
 
-  const getDateRange = (range) => {
-    const now = new Date();
-    switch (range) {
-      case "this_week":
-        const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
-        return {
-          start: startOfWeek.toISOString().split("T")[0],
-          end: new Date().toISOString().split("T")[0],
-        };
-      case "this_month":
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        return {
-          start: startOfMonth.toISOString().split("T")[0],
-          end: new Date().toISOString().split("T")[0],
-        };
-      default:
-        return { start: "", end: "" };
-    }
-  };
+
 
   const getCurrentSemester = () => {
     const now = new Date();
@@ -263,33 +212,7 @@ const Reports = () => {
     }
   };
 
-  const reportTypes = [
-    {
-      id: "attendance",
-      name: "Attendance Report",
-      icon: Users,
-      description: "Student attendance records",
-      roles: ["admin", "teacher"],
-    },
-    {
-      id: "grades",
-      name: "Grade Report",
-      icon: FileText,
-      description: "Course grades and statistics",
-      roles: ["admin", "teacher", "student"],
-    },
-    {
-      id: "student-performance",
-      name: "Student Performance",
-      icon: BookOpen,
-      description: "Individual student progress",
-      roles: ["admin", "teacher"],
-    },
-  ];
 
-  const filteredReportTypes = reportTypes.filter((type) =>
-    type.roles.includes(user?.role),
-  );
 
   const getGradeColor = (grade) => {
     switch (grade) {
@@ -334,36 +257,10 @@ const Reports = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 card">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-            Generate Report
+            Generate Grade Report
           </h2>
 
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Report Type
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {filteredReportTypes.map((type) => {
-                  const Icon = type.icon;
-                  return (
-                    <button
-                      key={type.id}
-                      onClick={() => setReportType(type.id)}
-                      className={`p-4 border rounded-lg text-left transition-all ${reportType === type.id
-                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                        : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
-                        }`}
-                    >
-                      <Icon size={24} className="mb-2" />
-                      <div className="font-medium">{type.name}</div>
-                      <div className="text-sm opacity-75">
-                        {type.description}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Department Selection - For admin and teacher */}
@@ -430,46 +327,24 @@ const Reports = () => {
                 </div>
               )}
 
-              {/* Semester Selection - For grade reports */}
-              {(reportType === "grades" ||
-                reportType === "student-performance") && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Semester
-                    </label>
-                    <select
-                      value={semester}
-                      onChange={(e) => setSemester(e.target.value)}
-                      className="input"
-                    >
-                      <option value="">All Semesters</option>
-                      {semesterOptions.map((sem) => (
-                        <option key={sem} value={sem}>
-                          {sem}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-              {/* Date Range - For attendance reports */}
-              {reportType === "attendance" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Date Range
-                  </label>
-                  <select
-                    value={dateRange}
-                    onChange={(e) => setDateRange(e.target.value)}
-                    className="input"
-                  >
-                    <option value="this_week">This Week</option>
-                    <option value="this_month">This Month</option>
-                    <option value="last_month">Last Month</option>
-                    <option value="this_semester">This Semester</option>
-                  </select>
-                </div>
-              )}
+              {/* Semester Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Semester
+                </label>
+                <select
+                  value={semester}
+                  onChange={(e) => setSemester(e.target.value)}
+                  className="input"
+                >
+                  <option value="">All Semesters</option>
+                  {semesterOptions.map((sem) => (
+                    <option key={sem} value={sem}>
+                      {sem}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <button
