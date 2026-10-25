@@ -781,7 +781,7 @@ const Dashboard = () => {
   // Role-specific dashboard render functions
   const renderAdminDashboard = () => (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <AdminStatCard
           icon={Users}
           title="Total Students"
@@ -798,12 +798,6 @@ const Dashboard = () => {
           icon={Folder}
           title="Departments"
           value={stats.departments || 0}
-          color="bg-linear-to-br from-blue-400 to-blue-600"
-        />
-        <AdminStatCard
-          icon={TrendingUp}
-          title="Attendance Rate"
-          value={`${stats.attendance || 0}%`}
           color="bg-linear-to-br from-blue-400 to-blue-600"
         />
       </div>
