@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { FileText, Download, BookOpen, Loader } from "lucide-react";
+import { downloadWordReport } from "../../utils/wordExportUtils";
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
 import { downloadExcelReport } from "../../utils/exportUtils";
@@ -15,6 +16,7 @@ const Reports = () => {
   const [semester, setSemester] = useState("");
   const [loading, setLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [downloadingWord, setDownloadingWord] = useState(false);
   const [reportData, setReportData] = useState(null);
 
   // Helper function to make API calls with consistent endpoint handling
@@ -163,6 +165,24 @@ const Reports = () => {
   ];
 
   const semesterOptions = ["1st Semester", "2nd Semester"];
+
+  const downloadWordDoc = async () => {
+    if (!reportData || downloadingWord) return;
+    setDownloadingWord(true);
+    try {
+      const parts = ["Grade Report"];
+      if (semester) parts.push(semester);
+      if (selectedYear) parts.push(selectedYear);
+      if (!semester && !selectedYear) parts.push(new Date().toISOString().split("T")[0]);
+      const filename = parts.join(" ").replace(/[/\\?%*:|"<>]/g, "-");
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      await downloadWordReport(reportData, filename);
+    } catch (error) {
+      console.error("Error downloading Word report:", error);
+    } finally {
+      setDownloadingWord(false);
+    }
+  };
 
   const downloadReport = async () => {
     if (!reportData || downloading) return;
@@ -403,6 +423,24 @@ const Reports = () => {
                   <>
                     <Download size={20} />
                     <span>Download Excel</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={downloadWordDoc}
+                disabled={downloadingWord}
+                className="w-full btn btn-secondary flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {downloadingWord ? (
+                  <>
+                    <Loader className="animate-spin" size={20} />
+                    <span>Generating Word...</span>
+                  </>
+                ) : (
+                  <>
+                    <FileText size={20} />
+                    <span>Download Word (.docx)</span>
                   </>
                 )}
               </button>

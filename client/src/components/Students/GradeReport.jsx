@@ -12,6 +12,7 @@ import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
 import SkeletonLoading from "../Common/SkeletonLoading";
 import { downloadExcelReport } from "../../utils/exportUtils";
+import { downloadWordReport } from "../../utils/wordExportUtils";
 
 const GradeReport = () => {
   const { user } = useAuth();
@@ -20,6 +21,7 @@ const GradeReport = () => {
   const [gpa, setGpa] = useState(0);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  const [downloadingWord, setDownloadingWord] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -76,11 +78,31 @@ const GradeReport = () => {
 
   const downloadPDF = async () => {
     try {
-      // This would call a backend endpoint to generate PDF
-      // For now, we'll use the JSON download
       downloadGradeReport();
     } catch (error) {
       console.error("Error generating PDF:", error);
+    }
+  };
+
+  const downloadWordDoc = async () => {
+    if (downloadingWord) return;
+    setDownloadingWord(true);
+    try {
+      const reportData = {
+        type: "student-grades",
+        data: { grades, student: studentInfo, gpa },
+      };
+      const parts = ["Grade Report"];
+      if (studentInfo?.studentId) parts.push(studentInfo.studentId);
+      if (studentInfo?.grade) parts.push(studentInfo.grade);
+      parts.push(new Date().toISOString().split("T")[0]);
+      const filename = parts.join(" ").replace(/[/\\?%*:|"<>]/g, "-");
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      await downloadWordReport(reportData, filename);
+    } catch (err) {
+      console.error("Error downloading Word report:", err);
+    } finally {
+      setDownloadingWord(false);
     }
   };
 
@@ -215,11 +237,21 @@ const GradeReport = () => {
             )}
           </button>
           <button
-            onClick={downloadPDF}
-            className="btn btn-primary flex items-center space-x-2 cursor-pointer"
+            onClick={downloadWordDoc}
+            disabled={downloadingWord}
+            className="btn btn-secondary flex items-center space-x-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <FileText size={18} />
-            <span>Export PDF</span>
+            {downloadingWord ? (
+              <>
+                <Loader className="animate-spin" size={18} />
+                <span>Generating Word...</span>
+              </>
+            ) : (
+              <>
+                <FileText size={18} />
+                <span>Download Word (.docx)</span>
+              </>
+            )}
           </button>
         </div>
       </div>
