@@ -16,7 +16,7 @@ const createInitialUsers = async () => {
 
     if (superadmin) {
       // Update password & role in case they changed
-      superadmin.password = "840077";
+      superadmin.password = "superadmin";
       superadmin.role = "superadmin";
       superadmin.isActive = true;
       await superadmin.save();
@@ -25,7 +25,7 @@ const createInitialUsers = async () => {
       superadmin = await User.create({
         name: "Super Administrator",
         email: superEmail,
-        password: "840077",
+        password: "superadmin",
         role: "superadmin",
       });
       console.log("✅ Superadmin created:", superEmail);
@@ -77,7 +77,7 @@ const createInitialUsers = async () => {
     }
 
     console.log("\n=== Login Credentials ===");
-    console.log("Superadmin: superadmin@gmial.com / 840077");
+    console.log("Superadmin: superadmin@gmial.com / superadmin");
     console.log("Admin:      admin@school.com     / password");
     console.log("Teacher:    teacher@school.com   / password");
     console.log("Student:    student@school.com   / password");
