@@ -154,7 +154,7 @@ const Login = () => {
         {/* Demo Accounts */}
         <div className="card">
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
-            Demo Accounts
+            Accounts
           </h3>
           <div className="space-y-2">
             {demoAccounts.map((account, index) => (
