@@ -54,6 +54,7 @@ const GradeReport = () => {
     setDownloading(true);
     try {
       const reportData = {
+        type: "student-grades",
         student: studentInfo,
         grades: grades,
         gpa: gpa,
@@ -90,6 +91,9 @@ const GradeReport = () => {
     try {
       const reportData = {
         type: "student-grades",
+        student: studentInfo,
+        grades: grades,
+        gpa: gpa,
         data: { grades, student: studentInfo, gpa },
       };
       const parts = ["Grade Report"];
@@ -345,9 +349,23 @@ const GradeReport = () => {
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
                     <Calendar size={20} />
-                    <span>{semester}</span>
+                    <span>
+                      {studentInfo?.grade ? `${studentInfo.grade} — ${semester}` : semester}
+                    </span>
                   </h2>
-                  <p className="text-gray-600 dark:text-gray-400 mt-1">
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
+                    {studentInfo?.grade && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300">
+                        Academic Year: {studentInfo.grade}
+                      </span>
+
+                      
+                    )}
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+                      Semester: {semester}
+                    </span>
+                  </div>
+                  <p className="text-gray-600 dark:text-gray-400 mt-2">
                     Semester GPA:
                     <span className="font-bold text-blue-600 dark:text-blue-400"> {semesterGPA}
                     </span>

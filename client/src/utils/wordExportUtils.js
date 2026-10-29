@@ -81,39 +81,181 @@ const makeDataCell = (text, isEven = false) =>
  */
 export const downloadWordReport = async (reportData, filename = "Grade Report") => {
   try {
-    /* 1 ── Flatten data using the shared formatter */
-    const rows = formatReportDataForExcel(reportData, "grades");
-    if (!rows || rows.length === 0) {
-      alert("No data available to export.");
-      return;
+    const isStudentGrades =
+      reportData?.type === "student-grades" ||
+      Boolean(reportData?.student || reportData?.data?.student);
+
+    const generatedAt = new Date().toLocaleString();
+    let bodyChildren = [];
+
+    if (isStudentGrades) {
+      const studentInfo = reportData?.student || reportData?.data?.student || {};
+      const studentName = studentInfo.user?.name || studentInfo.name || "N/A";
+      const studentId = studentInfo.studentId || "N/A";
+      const academicYear = studentInfo.grade || "N/A";
+      const gpa = reportData?.gpa || reportData?.data?.gpa || "N/A";
+      const gradesList = reportData?.grades || reportData?.data?.grades || [];
+
+      // Student summary info box
+      const infoTable = new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        columnWidths: [4500, 4500],
+        rows: [
+          new TableRow({
+            children: [
+              new TableCell({
+                borders: THIN_BORDER,
+                shading: { type: ShadingType.SOLID, color: "F7FAFC", fill: "F7FAFC" },
+                children: [
+                  new Paragraph({
+                    children: [
+                      new TextRun({ text: "Student Name: ", bold: true, size: 20, font: "Calibri" }),
+                      new TextRun({ text: String(studentName), size: 20, font: "Calibri" }),
+                    ],
+                  }),
+                ],
+              }),
+              new TableCell({
+                borders: THIN_BORDER,
+                shading: { type: ShadingType.SOLID, color: "F7FAFC", fill: "F7FAFC" },
+                children: [
+                  new Paragraph({
+                    children: [
+                      new TextRun({ text: "Student ID: ", bold: true, size: 20, font: "Calibri" }),
+                      new TextRun({ text: String(studentId), size: 20, font: "Calibri" }),
+                    ],
+                  }),
+                ],
+              }),
+            ],
+          }),
+          new TableRow({
+            children: [
+              new TableCell({
+                borders: THIN_BORDER,
+                shading: { type: ShadingType.SOLID, color: "F7FAFC", fill: "F7FAFC" },
+                children: [
+                  new Paragraph({
+                    children: [
+                      new TextRun({ text: "Academic Year: ", bold: true, size: 20, font: "Calibri" }),
+                      new TextRun({ text: String(academicYear), size: 20, font: "Calibri" }),
+                    ],
+                  }),
+                ],
+              }),
+              new TableCell({
+                borders: THIN_BORDER,
+                shading: { type: ShadingType.SOLID, color: "F7FAFC", fill: "F7FAFC" },
+                children: [
+                  new Paragraph({
+                    children: [
+                      new TextRun({ text: "Cumulative GPA: ", bold: true, size: 20, font: "Calibri" }),
+                      new TextRun({ text: String(gpa), bold: true, color: "2B6CB0", size: 20, font: "Calibri" }),
+                    ],
+                  }),
+                ],
+              }),
+            ],
+          }),
+        ],
+      });
+
+      bodyChildren.push(infoTable);
+
+      // Group grades by semester
+      const semesterGroups = {};
+      if (gradesList.length > 0) {
+        gradesList.forEach((grade) => {
+          const sem = grade.semester || studentInfo.semester || "Semester Grades";
+          if (!semesterGroups[sem]) {
+            semesterGroups[sem] = [];
+          }
+          semesterGroups[sem].push(grade);
+        });
+      } else {
+        const sem = studentInfo.semester || "Semester Grades";
+        semesterGroups[sem] = [];
+      }
+
+      const headers = ["Course Name", "Credits", "Grade", "Percentage", "Instructor"];
+      const colWidths = [3600, 1100, 1100, 1400, 1800];
+
+      Object.entries(semesterGroups).forEach(([sem, semGrades]) => {
+        // Year and Semester placed directly OVER the table of grade
+        bodyChildren.push(
+          new Paragraph({
+            alignment: AlignmentType.LEFT,
+            children: [
+              new TextRun({
+                text: `Academic Year: ${academicYear}    |    Semester: ${sem}`,
+                bold: true,
+                size: 22,
+                color: "1A365D",
+                font: "Calibri",
+              }),
+            ],
+            spacing: { before: 300, after: 120 },
+          })
+        );
+
+        const headerRow = new TableRow({
+          tableHeader: true,
+          children: headers.map(makeHeaderCell),
+        });
+
+        const dataRows = semGrades.map((grade, idx) => {
+          const cells = [
+            grade.course?.name || "N/A",
+            String(grade.course?.credits || 0),
+            grade.grade || "N/A",
+            grade.percentage !== undefined ? `${grade.percentage}%` : "N/A",
+            grade.course?.teacher?.name || "N/A",
+          ];
+          return new TableRow({
+            children: cells.map((c) => makeDataCell(c, idx % 2 === 1)),
+          });
+        });
+
+        const table = new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          columnWidths: colWidths,
+          rows: [headerRow, ...dataRows],
+        });
+
+        bodyChildren.push(table);
+      });
+    } else {
+      /* Flatten data using the shared formatter */
+      const rows = formatReportDataForExcel(reportData, "grades");
+      if (!rows || rows.length === 0) {
+        alert("No data available to export.");
+        return;
+      }
+
+      const headers = Object.keys(rows[0]);
+      const headerRow = new TableRow({
+        tableHeader: true,
+        children: headers.map(makeHeaderCell),
+      });
+
+      const dataRows = rows.map(
+        (row, idx) =>
+          new TableRow({
+            children: headers.map((h) => makeDataCell(row[h], idx % 2 === 1)),
+          })
+      );
+
+      const colWidth = Math.floor(9000 / headers.length);
+      const gradeTable = new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        columnWidths: headers.map(() => colWidth),
+        rows: [headerRow, ...dataRows],
+      });
+
+      bodyChildren.push(gradeTable);
     }
 
-    const headers = Object.keys(rows[0]);
-
-    /* 2 ── Build table */
-    const headerRow = new TableRow({
-      tableHeader: true,
-      children: headers.map(makeHeaderCell),
-    });
-
-    const dataRows = rows.map(
-      (row, idx) =>
-        new TableRow({
-          children: headers.map((h) => makeDataCell(row[h], idx % 2 === 1)),
-        })
-    );
-
-    const colWidth = Math.floor(9000 / headers.length);
-
-    const gradeTable = new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      columnWidths: headers.map(() => colWidth),
-      rows: [headerRow, ...dataRows],
-    });
-
-    /* 3 ── Meta */
-    const generatedAt = new Date().toLocaleString();
-    let subtitleParts = ["Grade Report"];
+    let subtitleParts = [isStudentGrades ? "Student Grade Report" : "Grade Report"];
     if (reportData?.data?.semester) subtitleParts.push(reportData.data.semester);
     const reportSubtitle = subtitleParts.join(" \u2014 ");
 
@@ -200,8 +342,8 @@ export const downloadWordReport = async (reportData, filename = "Grade Report") 
               spacing: { after: 300 },
             }),
 
-            /* Grade table */
-            gradeTable,
+            /* Grade tables and student info */
+            ...bodyChildren,
 
             /* Spacer */
             new Paragraph({

@@ -52,22 +52,13 @@ export const formatReportDataForExcel = (reportData, reportType = "") => {
   // 3. Student Grades Report (from Reports.jsx or GradeReport.jsx)
   if (reportData.type === "student-grades" || reportData.grades || (reportData.data && Array.isArray(reportData.data.grades))) {
     const gradesList = reportData.data?.grades || reportData.grades || [];
-    const studentInfo = reportData.student || reportData.data?.student || {};
-    const gpa = reportData.gpa || reportData.data?.gpa || "N/A";
 
     return gradesList.map((item) => ({
-      "Student ID": studentInfo.studentId || "N/A",
-      "Student Name": studentInfo.user?.name || studentInfo.name || "N/A",
-      "Course Code": item.course?.code || "N/A",
       "Course Name": item.course?.name || "N/A",
       "Credits": item.course?.credits || 0,
       "Grade": item.grade || "N/A",
       "Percentage": item.percentage !== undefined ? `${item.percentage}%` : "N/A",
-      "Semester": item.semester || "N/A",
-      "Cumulative GPA": gpa,
-      "Comments": item.comments || "",
       "Instructor": item.course?.teacher?.name || "N/A",
-      "Date Graded": item.gradedAt ? new Date(item.gradedAt).toLocaleDateString() : "N/A",
     }));
   }
 
@@ -143,15 +134,49 @@ export const downloadExcelReport = (reportData, filename = "report.xlsx", report
       return;
     }
 
-    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const isStudentGrades =
+      reportType === "student-grades" ||
+      reportData?.type === "student-grades" ||
+      Boolean(reportData?.student || reportData?.data?.student);
+
+    let worksheet;
+    if (isStudentGrades) {
+      const studentInfo = reportData.student || reportData.data?.student || {};
+      const studentName = studentInfo.user?.name || studentInfo.name || "N/A";
+      const studentId = studentInfo.studentId || "N/A";
+      const academicYear = studentInfo.grade || "N/A";
+      const gradesList = reportData.grades || reportData.data?.grades || [];
+      const semester = studentInfo.semester || (
+        Array.isArray(gradesList) && gradesList.length > 0
+          ? [...new Set(gradesList.map((g) => g.semester).filter(Boolean))].join(", ")
+          : "N/A"
+      );
+      const gpa = reportData.gpa || reportData.data?.gpa || "N/A";
+
+      const headerAoa = [
+        ["NEW GENERATION UNIVERSITY COLLEGE"],
+        ["OFFICIAL STUDENT GRADE REPORT"],
+        [],
+        ["Student Name:", studentName, "", "Student ID:", studentId],
+        ["Academic Year:", academicYear, "", "Semester:", semester],
+        ["Cumulative GPA:", gpa, "", "Generated Date:", new Date().toLocaleDateString()],
+        [], // blank line over table
+      ];
+
+      worksheet = XLSX.utils.aoa_to_sheet(headerAoa);
+      XLSX.utils.sheet_add_json(worksheet, rows, { origin: "A8" });
+    } else {
+      worksheet = XLSX.utils.json_to_sheet(rows);
+    }
 
     // Auto-adjust column widths based on longest content
-    const colWidths = Object.keys(rows[0] || {}).map((key) => {
+    const colWidths = Object.keys(rows[0] || {}).map((key, idx) => {
       const maxLen = Math.max(
         key.length,
         ...rows.map((row) => String(row[key] || "").length)
       );
-      return { wch: Math.min(Math.max(maxLen + 3, 12), 40) };
+      const baseWidth = Math.min(Math.max(maxLen + 4, 15), 45);
+      return { wch: idx === 0 ? Math.max(baseWidth, 24) : idx === 1 ? Math.max(baseWidth, 18) : baseWidth };
     });
     worksheet["!cols"] = colWidths;
 
