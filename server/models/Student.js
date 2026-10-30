@@ -19,6 +19,11 @@ const studentSchema = new mongoose.Schema(
       unique: true,
       uppercase: true,
     },
+    collegeId: {
+      type: String,
+      trim: true,
+      uppercase: true,
+    },
     course: {
       type: String,
       trim: true,

@@ -43,6 +43,7 @@ router.get("/my-grades", auth, authorize("student"), async (req, res) => {
         student: {
           name: req.user.name,
           studentId: student.studentId,
+          collegeId: student.collegeId,
           grade: student.grade,
           course: student.course,
         },
@@ -191,7 +192,7 @@ router.post(
       const { studentId, courseId, percentage, grade, semester, comments } = req.body;
 
       // Verify student exists
-      const student = await Student.findOne({ studentId }).populate("user");
+      const student = await Student.findOne({ $or: [{ studentId }, { collegeId: studentId }] }).populate("user");
       if (!student) {
         return res.status(404).json({
           success: false,
@@ -333,7 +334,7 @@ router.get("/", auth, authorize("admin", "teacher", "superadmin"), async (req, r
     }
 
     if (studentId) {
-      const student = await Student.findOne({ studentId });
+      const student = await Student.findOne({ $or: [{ studentId }, { collegeId: studentId }] });
       if (student) query.student = student._id;
     }
     if (courseId) {

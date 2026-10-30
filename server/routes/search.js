@@ -23,7 +23,7 @@ router.get("/", auth, async (req, res) => {
 
     // 1. Search Students by name or studentId
     const students = await Student.find({
-      $or: [{ name: regex }, { studentId: regex }],
+      $or: [{ name: regex }, { studentId: regex }, { collegeId: regex }],
     })
       .populate("user", "name email")
       .populate("department", "name")
@@ -52,6 +52,7 @@ router.get("/", auth, async (req, res) => {
           id: s._id,
           name: s.name || s.user?.name || "N/A",
           studentId: s.studentId,
+          collegeId: s.collegeId,
           grade: s.grade,
           department: s.department?.name || "",
         })),

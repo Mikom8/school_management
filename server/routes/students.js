@@ -51,6 +51,7 @@ router.post(
       .withMessage("Invalid date format"),
     body("course").optional({ checkFalsy: true }).trim(),
     body("department").optional({ checkFalsy: true }).trim(),
+    body("collegeId").optional({ checkFalsy: true }).trim(),
   ],
   async (req, res) => {
     let createdUser = null;
@@ -125,6 +126,7 @@ router.post(
         semester,
         course: course ? course.trim() : "",
         department: department || null,
+        collegeId: collegeId ? collegeId.trim() : undefined,
       });
 
       await student.populate("user", "name email");
