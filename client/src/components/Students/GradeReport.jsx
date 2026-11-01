@@ -62,7 +62,7 @@ const GradeReport = () => {
       };
 
       const parts = ["Grades Report"];
-      if (studentInfo?.studentId) parts.push(studentInfo.studentId);
+      if (studentInfo?.collegeId || studentInfo?.studentId) parts.push(studentInfo.collegeId || studentInfo.studentId);
       if (studentInfo?.grade) parts.push(studentInfo.grade);
       parts.push(new Date().toISOString().split("T")[0]);
 
@@ -97,7 +97,7 @@ const GradeReport = () => {
         data: { grades, student: studentInfo, gpa },
       };
       const parts = ["Grade Report"];
-      if (studentInfo?.studentId) parts.push(studentInfo.studentId);
+      if (studentInfo?.collegeId || studentInfo?.studentId) parts.push(studentInfo.collegeId || studentInfo.studentId);
       if (studentInfo?.grade) parts.push(studentInfo.grade);
       parts.push(new Date().toISOString().split("T")[0]);
       const filename = parts.join(" ").replace(/[/\\?%*:|"<>]/g, "-");
@@ -327,10 +327,10 @@ const GradeReport = () => {
               </div>
               <div>
                 <p className="text-sm font-medium text-orange-600 dark:text-orange-400">
-                  Student ID
+                  College ID
                 </p>
                 <p className="text-lg font-bold text-orange-800 dark:text-orange-200">
-                  {studentInfo.studentId}
+                  {studentInfo.collegeId || studentInfo.studentId}
                 </p>
               </div>
             </div>

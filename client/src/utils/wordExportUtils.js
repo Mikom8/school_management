@@ -91,7 +91,7 @@ export const downloadWordReport = async (reportData, filename = "Grade Report") 
     if (isStudentGrades) {
       const studentInfo = reportData?.student || reportData?.data?.student || {};
       const studentName = studentInfo.user?.name || studentInfo.name || "N/A";
-      const studentId = studentInfo.studentId || "N/A";
+      const studentId = studentInfo.collegeId || studentInfo.studentId || "N/A";
       const academicYear = studentInfo.grade || "N/A";
       const gpa = reportData?.gpa || reportData?.data?.gpa || "N/A";
       const gradesList = reportData?.grades || reportData?.data?.grades || [];
@@ -121,7 +121,7 @@ export const downloadWordReport = async (reportData, filename = "Grade Report") 
                 children: [
                   new Paragraph({
                     children: [
-                      new TextRun({ text: "Student ID: ", bold: true, size: 20, font: "Calibri" }),
+                      new TextRun({ text: "College ID: ", bold: true, size: 20, font: "Calibri" }),
                       new TextRun({ text: String(studentId), size: 20, font: "Calibri" }),
                     ],
                   }),

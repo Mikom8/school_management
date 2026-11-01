@@ -260,7 +260,7 @@ const Navbar = ({ isSidebarOpen, onMobileMenuToggle, sidebarWidth }) => {
                                   {student.name}
                                 </p>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                                  ID: {student.studentId} {student.grade ? `• ${student.grade}` : ""} {student.department ? `• ${student.department}` : ""}
+                                  ID: {user?.role === "teacher" || user?.role === "student" ? (student.collegeId || student.studentId) : student.studentId} {student.grade ? `• ${student.grade}` : ""} {student.department ? `• ${student.department}` : ""}
                                 </p>
                               </div>
                               <span className="text-[10px] font-semibold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">

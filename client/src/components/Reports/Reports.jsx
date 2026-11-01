@@ -506,7 +506,7 @@ const Reports = () => {
                             {grade.student?.user?.name}
                           </div>
                           <div className="text-sm text-gray-500 dark:text-gray-400">
-                            {grade.student?.studentId}
+                            {user?.role === "teacher" || user?.role === "student" ? (grade.student?.collegeId || grade.student?.studentId) : grade.student?.studentId}
                           </div>
                         </td>
                         <td className="py-3 px-4">
@@ -616,7 +616,7 @@ const Reports = () => {
                             Name
                           </th>
                           <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">
-                            Student ID
+                            {user?.role === "teacher" || user?.role === "student" ? "College ID" : "Student ID"}
                           </th>
                           <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">
                             Grade / 100%
@@ -636,7 +636,7 @@ const Reports = () => {
                               {studentData.user.name}
                             </td>
                             <td className="py-3 px-4 font-mono text-sm text-gray-900 dark:text-white">
-                              {studentData.student.studentId}
+                              {user?.role === "teacher" || user?.role === "student" ? (studentData.student.collegeId || studentData.student.studentId) : studentData.student.studentId}
                             </td>
                             <td className="py-3 px-4">
                               <div className="flex items-center space-x-2">

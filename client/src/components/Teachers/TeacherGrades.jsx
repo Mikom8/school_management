@@ -163,7 +163,8 @@ const TeacherGrades = () => {
     .filter((item) => {
       const searchLower = searchTerm.toLowerCase();
       return (
-        item.student.studentId.toLowerCase().includes(searchLower) ||
+        item.student.studentId?.toLowerCase().includes(searchLower) ||
+        item.student.collegeId?.toLowerCase().includes(searchLower) ||
         item.user.name.toLowerCase().includes(searchLower) ||
         item.course.name.toLowerCase().includes(searchLower) ||
         item.course.code.toLowerCase().includes(searchLower)
@@ -273,7 +274,7 @@ const TeacherGrades = () => {
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-600">
                   <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">
-                    Student ID
+                    College ID
                   </th>
                   <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">
                     Student Name
@@ -299,7 +300,7 @@ const TeacherGrades = () => {
                     className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50"
                   >
                     <td className="py-3 px-4 font-mono text-sm text-gray-900 dark:text-white">
-                      {studentData.student.studentId}
+                      {studentData.student.collegeId || studentData.student.studentId}
                     </td>
                     <td className="py-3 px-4 text-gray-900 dark:text-white">
                       {studentData.user.name}
@@ -516,7 +517,7 @@ const GradeEditModal = ({ studentData, onClose, onSubmit }) => {
                 Student
               </label>
               <p className="text-gray-900 dark:text-white font-medium">
-                {studentData.user.name} ({studentData.student.studentId})
+                {studentData.user.name} ({studentData.student.collegeId || studentData.student.studentId})
               </p>
             </div>
 

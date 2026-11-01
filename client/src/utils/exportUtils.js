@@ -40,7 +40,7 @@ export const formatReportDataForExcel = (reportData, reportType = "") => {
           "Semester": course.semester || "N/A",
           "Credits": course.credits || 0,
           "Student Name": studentObj.user?.name || "N/A",
-          "Student ID": studentObj.student?.studentId || "N/A",
+          "College ID": studentObj.student?.collegeId || studentObj.student?.studentId || "N/A",
           "Grade": studentObj.grade?.grade || "N/A",
           "Percentage": studentObj.grade?.percentage !== undefined ? `${studentObj.grade.percentage}%` : "N/A",
         });
@@ -143,7 +143,7 @@ export const downloadExcelReport = (reportData, filename = "report.xlsx", report
     if (isStudentGrades) {
       const studentInfo = reportData.student || reportData.data?.student || {};
       const studentName = studentInfo.user?.name || studentInfo.name || "N/A";
-      const studentId = studentInfo.studentId || "N/A";
+      const studentId = studentInfo.collegeId || studentInfo.studentId || "N/A";
       const academicYear = studentInfo.grade || "N/A";
       const gradesList = reportData.grades || reportData.data?.grades || [];
       const semester = studentInfo.semester || (
@@ -157,7 +157,7 @@ export const downloadExcelReport = (reportData, filename = "report.xlsx", report
         ["NEW GENERATION UNIVERSITY COLLEGE"],
         ["OFFICIAL STUDENT GRADE REPORT"],
         [],
-        ["Student Name:", studentName, "", "Student ID:", studentId],
+        ["Student Name:", studentName, "", "College ID:", studentId],
         ["Academic Year:", academicYear, "", "Semester:", semester],
         ["Cumulative GPA:", gpa, "", "Generated Date:", new Date().toLocaleDateString()],
         [], // blank line over table

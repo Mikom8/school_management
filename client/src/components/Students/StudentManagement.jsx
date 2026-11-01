@@ -87,6 +87,7 @@ const StudentManagement = () => {
   // Add Student Form State
   const [newStudent, setNewStudent] = useState({
     name: "",
+    collegeId: "",
     email: "",
     password: "",
     grade: "",
@@ -108,6 +109,7 @@ const StudentManagement = () => {
   // Edit Student Form State
   const [editStudent, setEditStudent] = useState({
     name: "",
+    collegeId: "",
     grade: "",
     dateOfBirth: "",
     parentName: "",
@@ -208,6 +210,7 @@ const StudentManagement = () => {
       const matchesSearch =
         student.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         student.studentId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.collegeId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         student.course?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         deptName.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesGrade = !filterGrade || student.grade === filterGrade;
@@ -336,6 +339,7 @@ const StudentManagement = () => {
     setSelectedStudent(student);
     setEditStudent({
       name: student.user?.name || "",
+      collegeId: student.collegeId || "",
       grade: student.grade || "",
       dateOfBirth: student.dateOfBirth
         ? new Date(student.dateOfBirth).toISOString().split("T")[0]
@@ -362,6 +366,7 @@ const StudentManagement = () => {
     try {
       const updateData = {
         name: editStudent.name,
+        collegeId: editStudent.collegeId ? editStudent.collegeId.trim() : "",
         grade: editStudent.grade,
         dateOfBirth: editStudent.dateOfBirth,
         parentName: editStudent.parentName,
@@ -487,6 +492,7 @@ const StudentManagement = () => {
     const cleanedStudent = {
       ...newStudent,
       name: newStudent.name.trim(),
+      collegeId: newStudent.collegeId ? newStudent.collegeId.trim() : "",
       email: newStudent.email.trim().toLowerCase(),
       password: newStudent.password,
       grade: newStudent.grade.trim(),
@@ -543,6 +549,7 @@ const StudentManagement = () => {
     try {
       const studentData = {
         name: cleanedStudent.name,
+        collegeId: cleanedStudent.collegeId || undefined,
         email: cleanedStudent.email,
         password: cleanedStudent.password,
         grade: cleanedStudent.grade,
@@ -563,6 +570,7 @@ const StudentManagement = () => {
         setShowAddForm(false);
         setNewStudent({
           name: "",
+          collegeId: "",
           email: "",
           password: "",
           grade: "",
@@ -791,10 +799,10 @@ const StudentManagement = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                   <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
                     <p className="text-sm text-blue-600 dark:text-blue-400">
-                      Student ID
+                      {user?.role === "teacher" ? "College ID" : "Student ID"}
                     </p>
                     <p className="text-lg font-bold text-blue-800 dark:text-blue-200">
-                      {gradeReportData.student.studentId}
+                      {user?.role === "teacher" ? (gradeReportData.student.collegeId || gradeReportData.student.studentId) : gradeReportData.student.studentId}
                     </p>
                   </div>
                   <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
@@ -938,6 +946,19 @@ const StudentManagement = () => {
                       onChange={handleEditInputChange}
                       className="input"
                       placeholder="Enter student's full name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      College ID
+                    </label>
+                    <input
+                      type="text"
+                      name="collegeId"
+                      value={editStudent.collegeId || ""}
+                      onChange={handleEditInputChange}
+                      className="input"
+                      placeholder="e.g. 38693/17"
                     />
                   </div>
                   <div>
@@ -1201,6 +1222,19 @@ const StudentManagement = () => {
                       onChange={handleInputChange}
                       className="input"
                       placeholder="Enter student's full name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      College ID (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      name="collegeId"
+                      value={newStudent.collegeId || ""}
+                      onChange={handleInputChange}
+                      className="input"
+                      placeholder="e.g. 38693/17"
                     />
                   </div>
                   <div>
@@ -1543,7 +1577,7 @@ const StudentManagement = () => {
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-600">
                     <th className="text-left py-3 px-2 sm:px-4 font-medium text-gray-900 dark:text-white text-sm sm:text-base whitespace-nowrap">
-                      Student ID
+                      {user?.role === "teacher" ? "College ID" : "Student ID"}
                     </th>
                     <th className="text-left py-3 px-2 sm:px-4 font-medium text-gray-900 dark:text-white text-sm sm:text-base">
                       Name
@@ -1578,7 +1612,18 @@ const StudentManagement = () => {
                         className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-xs sm:text-sm"
                       >
                         <td className="py-3 px-2 sm:px-4 font-mono text-gray-900 dark:text-white">
-                          {student.studentId}
+                          {user?.role === "teacher" ? (
+                            student.collegeId || student.studentId
+                          ) : (
+                            <div>
+                              <span>{student.studentId}</span>
+                              {student.collegeId && (
+                                <div className="text-[11px] text-gray-500 dark:text-gray-400">
+                                  Col: {student.collegeId}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </td>
                         <td className="py-3 px-2 sm:px-4">
                           <div className="font-medium text-gray-900 dark:text-white">
