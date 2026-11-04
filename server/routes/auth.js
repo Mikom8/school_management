@@ -4,6 +4,7 @@ const User = require("../models/User");
 const Student = require("../models/Student");
 const { body, validationResult } = require("express-validator");
 const { auth } = require("../middleware/auth");
+const { escapeRegex } = require("../middleware/security");
 
 const router = express.Router();
 
@@ -96,13 +97,12 @@ router.post(
   }
 );
 
-// @desc    Login user
+// @desc    Login user (via Email or College ID for students)
 // @route   POST /api/auth/login
 // @access  Public
 router.post(
   "/login",
   [
-    body("email").isEmail().withMessage("Please include a valid email"),
     body("password").exists().withMessage("Password is required"),
   ],
   async (req, res) => {
@@ -116,17 +116,52 @@ router.post(
         });
       }
 
-      const { email, password } = req.body;
+      const { email, identifier, collegeId, loginType, password } = req.body;
+      const rawIdentifier = (identifier || collegeId || email || "").trim();
 
-      // Find user and include password for verification
-      const user = await User.findOne({ email: email.toLowerCase() }).select(
-        "+password"
-      );
+      if (!rawIdentifier) {
+        return res.status(400).json({
+          success: false,
+          message:
+            loginType === "collegeId"
+              ? "College ID is required"
+              : "Email address or College ID is required",
+        });
+      }
+
+      let user = null;
+
+      // 1. If explicitly using College ID, or if input does not contain an '@'
+      if (loginType === "collegeId" || collegeId || !rawIdentifier.includes("@")) {
+        const escapedId = escapeRegex(rawIdentifier);
+        const student = await Student.findOne({
+          collegeId: { $regex: new RegExp(`^${escapedId}$`, "i") },
+        });
+
+        if (student && student.collegeId && student.user) {
+          user = await User.findById(student.user).select("+password");
+        } else if (loginType === "collegeId") {
+          return res.status(401).json({
+            success: false,
+            message: "No student account found with this College ID",
+          });
+        }
+      }
+
+      // 2. If not found via College ID and identifier contains '@'
+      if (!user && rawIdentifier.includes("@")) {
+        user = await User.findOne({ email: rawIdentifier.toLowerCase() }).select(
+          "+password"
+        );
+      }
 
       if (!user) {
         return res.status(401).json({
           success: false,
-          message: "Invalid credentials",
+          message:
+            loginType === "collegeId"
+              ? "No student account found with this College ID"
+              : "Invalid credentials",
         });
       }
 
@@ -142,7 +177,10 @@ router.post(
       if (!isPasswordMatch) {
         return res.status(401).json({
           success: false,
-          message: "Invalid credentials",
+          message:
+            loginType === "collegeId"
+              ? "Invalid College ID or password"
+              : "Invalid credentials",
         });
       }
 

@@ -21,10 +21,13 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (identifier, password, loginType = "email") => {
     try {
       const response = await axios.post("/auth/login", {
-        email,
+        identifier,
+        email: identifier,
+        loginType,
+        collegeId: loginType === "collegeId" ? identifier : undefined,
         password,
       });
 

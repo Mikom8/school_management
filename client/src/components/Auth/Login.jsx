@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { Eye, EyeOff, Loader } from "lucide-react";
+import { Eye, EyeOff, Loader, Mail, GraduationCap } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
 const Login = () => {
+  const [loginType, setLoginType] = useState("email"); // "email" | "collegeId"
   const [formData, setFormData] = useState({
-    email: "",
+    identifier: "",
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -20,12 +21,21 @@ const Login = () => {
     });
   };
 
+  const handleTabChange = (type) => {
+    setLoginType(type);
+    setError("");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
 
-    const result = await login(formData.email, formData.password);
+    const result = await login(
+      formData.identifier.trim(),
+      formData.password,
+      loginType
+    );
 
     if (!result.success) {
       setError(result.message);
@@ -40,7 +50,9 @@ const Login = () => {
   ];
 
   const fillDemoCredentials = (email, password) => {
-    setFormData({ email, password });
+    setLoginType("email");
+    setFormData({ identifier: email, password });
+    setError("");
   };
 
   return (
@@ -74,6 +86,34 @@ const Login = () => {
 
         {/* Login Form */}
         <form className="mt-8 space-y-6 card" onSubmit={handleSubmit}>
+          {/* Method Selector Tabs */}
+          <div className="flex rounded-xl bg-gray-100 dark:bg-gray-800 p-1 border border-gray-200 dark:border-gray-700">
+            <button
+              type="button"
+              onClick={() => handleTabChange("email")}
+              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center space-x-2 cursor-pointer ${
+                loginType === "email"
+                  ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm font-semibold"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+              }`}
+            >
+              <Mail size={16} />
+              <span>Email</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleTabChange("collegeId")}
+              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center space-x-2 cursor-pointer ${
+                loginType === "collegeId"
+                  ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm font-semibold"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+              }`}
+            >
+              <GraduationCap size={16} />
+              <span>College ID</span>
+            </button>
+          </div>
+
           {error && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
               <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
@@ -81,24 +121,50 @@ const Login = () => {
           )}
 
           <div className="space-y-4">
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >
-                Email Address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                className="input"
-                placeholder="Enter your email"
-              />
-            </div>
+            {loginType === "email" ? (
+              <div>
+                <label
+                  htmlFor="identifier"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >
+                  Email Address
+                </label>
+                <input
+                  id="identifier"
+                  name="identifier"
+                  type="email"
+                  required
+                  value={formData.identifier}
+                  onChange={handleChange}
+                  className="input"
+                  placeholder="Enter your email (e.g. name@school.com)"
+                />
+              </div>
+            ) : (
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label
+                    htmlFor="identifier"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    College ID
+                  </label>
+                  <span className="text-[11px] font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
+                    Students Only
+                  </span>
+                </div>
+                <input
+                  id="identifier"
+                  name="identifier"
+                  type="text"
+                  required
+                  value={formData.identifier}
+                  onChange={handleChange}
+                  className="input"
+                  placeholder="Enter College ID"
+                />
+              </div>
+            )}
 
             <div>
               <label
@@ -120,7 +186,7 @@ const Login = () => {
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
@@ -145,7 +211,11 @@ const Login = () => {
                   <span>Signing in...</span>
                 </>
               ) : (
-                <span>Sign In</span>
+                <span>
+                  {loginType === "collegeId"
+                    ? "Sign In with College ID"
+                    : "Sign In"}
+                </span>
               )}
             </button>
           </div>
@@ -163,7 +233,7 @@ const Login = () => {
                 onClick={() =>
                   fillDemoCredentials(account.email, account.password)
                 }
-                className="w-full text-left p-3 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                className="w-full text-left p-3 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
               >
                 <div className="font-medium text-gray-900 dark:text-white">
                   {account.role}
