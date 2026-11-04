@@ -5,7 +5,8 @@ const Course = require("../models/Course");
 const Student = require("../models/Student");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
-const { auth, authorize } = require("../middleware/auth"); // Add authorize import
+const { auth, authorize } = require("../middleware/auth");
+const { escapeRegex } = require("../middleware/security"); // Add authorize import
 const { body, validationResult } = require("express-validator");
 
 const router = express.Router();
@@ -192,7 +193,14 @@ router.post(
       const { studentId, courseId, percentage, grade, semester, comments } = req.body;
 
       // Verify student exists
-      const student = await Student.findOne({ $or: [{ studentId }, { collegeId: studentId }] }).populate("user");
+      const escapedStudentId = escapeRegex(studentId);
+      const student = await Student.findOne({
+        $or: [
+          { studentId },
+          { collegeId: studentId },
+          { collegeId: new RegExp('^' + escapedStudentId + '(?:/.*)?$', 'i') },
+        ],
+      }).populate("user");
       if (!student) {
         return res.status(404).json({
           success: false,
@@ -334,11 +342,18 @@ router.get("/", auth, authorize("admin", "teacher", "superadmin"), async (req, r
     }
 
     if (studentId) {
-      const student = await Student.findOne({ $or: [{ studentId }, { collegeId: studentId }] });
+      const escapedStudentId = escapeRegex(studentId);
+      const student = await Student.findOne({
+        $or: [
+          { studentId },
+          { collegeId: studentId },
+          { collegeId: new RegExp('^' + escapedStudentId + '(?:/.*)?$', 'i') },
+        ],
+      });
       if (student) query.student = student._id;
     }
+
     if (courseId) {
-      // If teacher, verify they teach this course
       if (req.user.role === "teacher") {
         const course = await Course.findById(courseId);
         if (!course || course.teacher.toString() !== req.user._id.toString()) {

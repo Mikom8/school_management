@@ -117,7 +117,9 @@ router.post(
       }
 
       const { email, identifier, collegeId, loginType, password } = req.body;
-      const rawIdentifier = (identifier || collegeId || email || "").trim();
+      const rawIdentifier = (identifier || collegeId || email || "")
+        .trim()
+        .replace(/\/+$/, "");
 
       if (!rawIdentifier) {
         return res.status(400).json({
@@ -134,8 +136,16 @@ router.post(
       // 1. If explicitly using College ID, or if input does not contain an '@'
       if (loginType === "collegeId" || collegeId || !rawIdentifier.includes("@")) {
         const escapedId = escapeRegex(rawIdentifier);
+        // Allows both full ID (e.g. 38693/17) and number-only ID (e.g. 38693)
+        const idRegex = rawIdentifier.includes("/")
+          ? new RegExp(`^${escapedId}$`, "i")
+          : new RegExp(`^${escapedId}(?:/.*)?$`, "i");
+
         const student = await Student.findOne({
-          collegeId: { $regex: new RegExp(`^${escapedId}$`, "i") },
+          $or: [
+            { collegeId: { $regex: idRegex } },
+            { studentId: { $regex: new RegExp(`^${escapedId}$`, "i") } },
+          ],
         });
 
         if (student && student.collegeId && student.user) {
